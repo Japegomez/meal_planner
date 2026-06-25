@@ -1,0 +1,32 @@
+---
+alwaysApply: true
+---
+
+# Pull requests — revisor y asignado
+
+Cuando este proyecto necesite crear un pull request (por CLI o cuando el usuario pida crear/abrir PR):
+
+**Merge (prohibido por defecto):** no ejecutes `gh pr merge`, ni completes el merge del PR por CLI/API, **salvo** que el usuario lo pida **explícitamente** para ese PR concreto. El merge a la rama base lo hace el usuario **manualmente** en GitHub.
+
+1. Usa **GitHub CLI** (`gh`) cuando sea posible.
+2. **Idioma de los PR:** título y descripción del PR siempre en **inglés** (convención del repo).
+3. **Rama base por defecto:** `develop` (integración GitFlow). Usa `--base develop` salvo que el usuario pida explícitamente otra base (por ejemplo `main` para un release).
+4. En `gh pr create`, incluye **siempre** (además del resto de flags que correspondan):
+   - `--reviewer Japegomez`
+   - `--assignee Japegomez`
+
+Ejemplo:
+
+```bash
+gh pr create --draft --base develop --reviewer Japegomez --assignee Japegomez --title "..." --body "..."
+```
+
+Si ya existe un PR contra otra base (p. ej. `main`) y el usuario quiere integrar en `develop`, usa `gh pr edit NUMBER --base develop`.
+
+Si el comando no admite combinación por flags (`gh pr edit` después de crear), ejecuta después:
+
+```bash
+gh pr edit NUMBER --add-reviewer Japegomez --add-assignee Japegomez
+```
+
+No omitas revisor/asignado salvo que el usuario lo diga explícitamente para un PR concreto.

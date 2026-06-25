@@ -1,0 +1,12 @@
+import 'package:flutter/material.dart';
+
+class PlannerScreen extends StatelessWidget {
+  const PlannerScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: Text('Planificador — Fase 4')),
+    );
+  }
+}

@@ -1,0 +1,7 @@
+# Local env and build artifacts at repo root
+.env
+.env.*
+!.env.example
+
+# Cursor session artifacts (rules are tracked)
+.cursor/plans/

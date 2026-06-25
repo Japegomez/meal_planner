@@ -1,0 +1,104 @@
+workflows:
+  android-workflow:
+    name: Android Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - supabase
+        - sentry
+        - posthog
+      vars:
+        PACKAGE_NAME: com.japegomez.meal_planner
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: develop
+          include: true
+          source: true
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/meal_planner/android/local.properties"
+      - name: Get Flutter packages
+        script: |
+          cd meal_planner && flutter packages pub get
+      - name: Flutter analyze
+        script: |
+          cd meal_planner && flutter analyze
+      - name: Flutter unit tests
+        script: |
+          cd meal_planner && flutter test
+      - name: Build Android App Bundle
+        script: |
+          cd meal_planner && flutter build appbundle --release \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=SENTRY_DSN=$SENTRY_DSN \
+            --dart-define=POSTHOG_API_KEY=$POSTHOG_API_KEY \
+            --dart-define=POSTHOG_HOST=$POSTHOG_HOST
+    artifacts:
+      - meal_planner/build/**/outputs/**/*.aab
+      - meal_planner/build/**/outputs/**/mapping.txt
+      - flutter_drive.log
+    publishing:
+      email:
+        notify:
+          success: true
+          failure: true
+
+  ios-workflow:
+    name: iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - supabase
+        - sentry
+        - posthog
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.japegomez.meal_planner
+      vars:
+        BUNDLE_ID: com.japegomez.meal_planner
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: develop
+          include: true
+          source: true
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          cd meal_planner && flutter packages pub get
+      - name: Flutter analyze
+        script: |
+          cd meal_planner && flutter analyze
+      - name: Flutter unit tests
+        script: |
+          cd meal_planner && flutter test
+      - name: Build iOS IPA
+        script: |
+          cd meal_planner && flutter build ipa --release \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=SENTRY_DSN=$SENTRY_DSN \
+            --dart-define=POSTHOG_API_KEY=$POSTHOG_API_KEY \
+            --dart-define=POSTHOG_HOST=$POSTHOG_HOST
+    artifacts:
+      - meal_planner/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      email:
+        notify:
+          success: true
+          failure: true
