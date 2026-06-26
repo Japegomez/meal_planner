@@ -65,16 +65,16 @@ class ShoppingItem implements SupadartClass<ShoppingItem> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (shoppingListId != null) 'shopping_list_id': shoppingListId,
-      if (name != null) 'name': name,
+      'id': ?id,
+      'shopping_list_id': ?shoppingListId,
+      'name': ?name,
       if (quantity != null) 'quantity': quantity.toString(),
-      if (unit != null) 'unit': unit,
-      if (category != null) 'category': category,
-      if (isChecked != null) 'is_checked': isChecked,
-      if (isManual != null) 'is_manual': isManual,
-      if (planSlotId != null) 'plan_slot_id': planSlotId,
-      if (ingredientId != null) 'ingredient_id': ingredientId,
+      'unit': ?unit,
+      'category': ?category,
+      'is_checked': ?isChecked,
+      'is_manual': ?isManual,
+      'plan_slot_id': ?planSlotId,
+      'ingredient_id': ?ingredientId,
       if (createdAt != null) 'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
@@ -177,17 +177,17 @@ class ShoppingItem implements SupadartClass<ShoppingItem> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (shoppingListId != null) 'shopping_list_id': shoppingListId,
-      if (name != null) 'name': name,
-      if (quantity != null) 'quantity': quantity,
-      if (unit != null) 'unit': unit,
-      if (category != null) 'category': category,
-      if (isChecked != null) 'is_checked': isChecked,
-      if (isManual != null) 'is_manual': isManual,
-      if (planSlotId != null) 'plan_slot_id': planSlotId,
-      if (ingredientId != null) 'ingredient_id': ingredientId,
-      if (createdAt != null) 'created_at': createdAt,
+      'id': ?id,
+      'shopping_list_id': ?shoppingListId,
+      'name': ?name,
+      'quantity': ?quantity,
+      'unit': ?unit,
+      'category': ?category,
+      'is_checked': ?isChecked,
+      'is_manual': ?isManual,
+      'plan_slot_id': ?planSlotId,
+      'ingredient_id': ?ingredientId,
+      'created_at': ?createdAt,
     };
   }
 

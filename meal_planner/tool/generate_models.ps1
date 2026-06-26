@@ -30,3 +30,14 @@ Remove-Item Env:SUPABASE_ANON_KEY -ErrorAction SilentlyContinue
 
 dart pub get
 dart run supadart
+
+$header = Join-Path $PWD "lib\core\supabase\models\supadart_header.dart"
+if (Test-Path $header) {
+    $content = Get-Content $header -Raw
+    $content = $content -replace "get recipe-photos", "get recipe_photos"
+    $content = $content -replace "(?ms)  static \w+ converter\(List<Map<String, dynamic>> data\) \{\r?\n    throw UnimplementedError\(\);\r?\n  \}\r?\n\r?\n  static \w+ converterSingle\(Map<String, dynamic> data\) \{\r?\n    throw UnimplementedError\(\);\r?\n  \}\r?\n", ""
+    Set-Content -Path $header -Value $content.TrimEnd() -NoNewline
+    Add-Content -Path $header -Value "`n"
+}
+
+dart fix --apply lib/core/supabase/models

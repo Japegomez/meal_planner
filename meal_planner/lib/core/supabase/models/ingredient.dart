@@ -49,13 +49,13 @@ class Ingredient implements SupadartClass<Ingredient> {
     int? position,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (recipeId != null) 'recipe_id': recipeId,
-      if (name != null) 'name': name,
+      'id': ?id,
+      'recipe_id': ?recipeId,
+      'name': ?name,
       if (quantity != null) 'quantity': quantity.toString(),
-      if (unit != null) 'unit': unit,
-      if (category != null) 'category': category,
-      if (position != null) 'position': position,
+      'unit': ?unit,
+      'category': ?category,
+      'position': ?position,
     };
   }
 
@@ -125,13 +125,13 @@ class Ingredient implements SupadartClass<Ingredient> {
     int? position,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (recipeId != null) 'recipe_id': recipeId,
-      if (name != null) 'name': name,
-      if (quantity != null) 'quantity': quantity,
-      if (unit != null) 'unit': unit,
-      if (category != null) 'category': category,
-      if (position != null) 'position': position,
+      'id': ?id,
+      'recipe_id': ?recipeId,
+      'name': ?name,
+      'quantity': ?quantity,
+      'unit': ?unit,
+      'category': ?category,
+      'position': ?position,
     };
   }
 

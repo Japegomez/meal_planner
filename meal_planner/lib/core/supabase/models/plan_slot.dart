@@ -49,13 +49,13 @@ class PlanSlot implements SupadartClass<PlanSlot> {
     int? position,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (planId != null) 'plan_id': planId,
-      if (dayOfWeek != null) 'day_of_week': dayOfWeek,
-      if (mealType != null) 'meal_type': mealType,
-      if (recipeId != null) 'recipe_id': recipeId,
-      if (servings != null) 'servings': servings,
-      if (position != null) 'position': position,
+      'id': ?id,
+      'plan_id': ?planId,
+      'day_of_week': ?dayOfWeek,
+      'meal_type': ?mealType,
+      'recipe_id': ?recipeId,
+      'servings': ?servings,
+      'position': ?position,
     };
   }
 
@@ -129,13 +129,13 @@ class PlanSlot implements SupadartClass<PlanSlot> {
     int? position,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (planId != null) 'plan_id': planId,
-      if (dayOfWeek != null) 'day_of_week': dayOfWeek,
-      if (mealType != null) 'meal_type': mealType,
-      if (recipeId != null) 'recipe_id': recipeId,
-      if (servings != null) 'servings': servings,
-      if (position != null) 'position': position,
+      'id': ?id,
+      'plan_id': ?planId,
+      'day_of_week': ?dayOfWeek,
+      'meal_type': ?mealType,
+      'recipe_id': ?recipeId,
+      'servings': ?servings,
+      'position': ?position,
     };
   }
 

@@ -66,7 +66,7 @@ lib/
 ## CI
 
 - **GitHub Actions**: análisis + tests en PRs a `main` / `develop`
-- **Codemagic**: builds Android (AAB) e iOS (IPA) — ver `codemagic.yaml` en la raíz del repo
+- **Codemagic**: builds Android (AAB) e iOS (IPA) en push a `main` — guía completa en [`docs/CODEMAGIC.md`](../docs/CODEMAGIC.md)
 
 ## Supabase
 

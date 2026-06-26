@@ -49,8 +49,8 @@ class NutritionInfo implements SupadartClass<NutritionInfo> {
     num? fiber,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (recipeId != null) 'recipe_id': recipeId,
+      'id': ?id,
+      'recipe_id': ?recipeId,
       if (calories != null) 'calories': calories.toString(),
       if (protein != null) 'protein': protein.toString(),
       if (carbohydrates != null) 'carbohydrates': carbohydrates.toString(),
@@ -129,13 +129,13 @@ class NutritionInfo implements SupadartClass<NutritionInfo> {
     num? fiber,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (recipeId != null) 'recipe_id': recipeId,
-      if (calories != null) 'calories': calories,
-      if (protein != null) 'protein': protein,
-      if (carbohydrates != null) 'carbohydrates': carbohydrates,
-      if (fat != null) 'fat': fat,
-      if (fiber != null) 'fiber': fiber,
+      'id': ?id,
+      'recipe_id': ?recipeId,
+      'calories': ?calories,
+      'protein': ?protein,
+      'carbohydrates': ?carbohydrates,
+      'fat': ?fat,
+      'fiber': ?fiber,
     };
   }
 

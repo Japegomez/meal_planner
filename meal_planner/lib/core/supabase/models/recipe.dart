@@ -65,15 +65,15 @@ class Recipe implements SupadartClass<Recipe> {
     DateTime? updatedAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (userId != null) 'user_id': userId,
-      if (title != null) 'title': title,
-      if (photoUrl != null) 'photo_url': photoUrl,
-      if (servings != null) 'servings': servings,
-      if (prepTime != null) 'prep_time': prepTime,
-      if (cookTime != null) 'cook_time': cookTime,
+      'id': ?id,
+      'user_id': ?userId,
+      'title': ?title,
+      'photo_url': ?photoUrl,
+      'servings': ?servings,
+      'prep_time': ?prepTime,
+      'cook_time': ?cookTime,
       if (tags != null) 'tags': tags.map((e) => e).toList(),
-      if (isPublic != null) 'is_public': isPublic,
+      'is_public': ?isPublic,
       if (createdAt != null) 'created_at': createdAt.toUtc().toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt.toUtc().toIso8601String(),
     };
@@ -179,17 +179,17 @@ class Recipe implements SupadartClass<Recipe> {
     DateTime? updatedAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (userId != null) 'user_id': userId,
-      if (title != null) 'title': title,
-      if (photoUrl != null) 'photo_url': photoUrl,
-      if (servings != null) 'servings': servings,
-      if (prepTime != null) 'prep_time': prepTime,
-      if (cookTime != null) 'cook_time': cookTime,
-      if (tags != null) 'tags': tags,
-      if (isPublic != null) 'is_public': isPublic,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
+      'id': ?id,
+      'user_id': ?userId,
+      'title': ?title,
+      'photo_url': ?photoUrl,
+      'servings': ?servings,
+      'prep_time': ?prepTime,
+      'cook_time': ?cookTime,
+      'tags': ?tags,
+      'is_public': ?isPublic,
+      'created_at': ?createdAt,
+      'updated_at': ?updatedAt,
     };
   }
 

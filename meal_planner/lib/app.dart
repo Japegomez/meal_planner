@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meal_planner/core/theme/app_theme.dart';
+import 'package:meal_planner/core/widgets/connectivity_banner.dart';
 import 'package:meal_planner/router/app_router.dart';
 import 'package:upgrader/upgrader.dart';
 
@@ -18,7 +19,9 @@ class MealPlannerApp extends ConsumerWidget {
       routerConfig: router,
       builder: (context, child) {
         return UpgradeAlert(
-          child: child ?? const SizedBox.shrink(),
+          child: ConnectivityBanner(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

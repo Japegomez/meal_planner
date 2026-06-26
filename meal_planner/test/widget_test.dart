@@ -9,6 +9,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Login — Fase 2'), findsOneWidget);
+    expect(find.text('MealPlanner'), findsOneWidget);
   });
 }

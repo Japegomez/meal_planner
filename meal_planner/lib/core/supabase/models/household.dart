@@ -41,10 +41,10 @@ class Household implements SupadartClass<Household> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (inviteCode != null) 'invite_code': inviteCode,
-      if (createdBy != null) 'created_by': createdBy,
+      'id': ?id,
+      'name': ?name,
+      'invite_code': ?inviteCode,
+      'created_by': ?createdBy,
       if (createdAt != null) 'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
@@ -105,11 +105,11 @@ class Household implements SupadartClass<Household> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (inviteCode != null) 'invite_code': inviteCode,
-      if (createdBy != null) 'created_by': createdBy,
-      if (createdAt != null) 'created_at': createdAt,
+      'id': ?id,
+      'name': ?name,
+      'invite_code': ?inviteCode,
+      'created_by': ?createdBy,
+      'created_at': ?createdAt,
     };
   }
 

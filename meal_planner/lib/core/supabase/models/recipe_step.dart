@@ -37,10 +37,10 @@ class RecipeStep implements SupadartClass<RecipeStep> {
     String? description,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (recipeId != null) 'recipe_id': recipeId,
-      if (position != null) 'position': position,
-      if (description != null) 'description': description,
+      'id': ?id,
+      'recipe_id': ?recipeId,
+      'position': ?position,
+      'description': ?description,
     };
   }
 
@@ -92,10 +92,10 @@ class RecipeStep implements SupadartClass<RecipeStep> {
     String? description,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (recipeId != null) 'recipe_id': recipeId,
-      if (position != null) 'position': position,
-      if (description != null) 'description': description,
+      'id': ?id,
+      'recipe_id': ?recipeId,
+      'position': ?position,
+      'description': ?description,
     };
   }
 

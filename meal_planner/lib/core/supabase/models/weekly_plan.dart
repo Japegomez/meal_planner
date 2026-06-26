@@ -41,9 +41,9 @@ class WeeklyPlan implements SupadartClass<WeeklyPlan> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (householdId != null) 'household_id': householdId,
-      if (userId != null) 'user_id': userId,
+      'id': ?id,
+      'household_id': ?householdId,
+      'user_id': ?userId,
       if (weekStart != null) 'week_start': weekStart.toIso8601String(),
       if (createdAt != null) 'created_at': createdAt.toUtc().toIso8601String(),
     };
@@ -105,11 +105,11 @@ class WeeklyPlan implements SupadartClass<WeeklyPlan> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (householdId != null) 'household_id': householdId,
-      if (userId != null) 'user_id': userId,
-      if (weekStart != null) 'week_start': weekStart,
-      if (createdAt != null) 'created_at': createdAt,
+      'id': ?id,
+      'household_id': ?householdId,
+      'user_id': ?userId,
+      'week_start': ?weekStart,
+      'created_at': ?createdAt,
     };
   }
 

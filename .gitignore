@@ -13,3 +13,4 @@ AuthKey.p8
 # Supabase CLI temp
 supabase/.temp/
 /scripts/
+!/scripts/generate_apple_jwt.py

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:meal_planner/core/widgets/connectivity_banner.dart';
 
 class HomeShell extends StatelessWidget {
   const HomeShell({required this.navigationShell, super.key});
@@ -17,7 +16,7 @@ class HomeShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ConnectivityBanner(child: navigationShell),
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _onTap,

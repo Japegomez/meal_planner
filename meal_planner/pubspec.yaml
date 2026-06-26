@@ -23,6 +23,7 @@ dependencies:
   in_app_review: ^2.0.10
   google_sign_in: ^6.3.0
   sign_in_with_apple: ^6.1.4
+  crypto: ^3.0.6
   image_picker: ^1.1.2
   share_plus: ^10.1.4
   cached_network_image: ^3.4.1

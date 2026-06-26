@@ -37,9 +37,9 @@ class HouseholdMember implements SupadartClass<HouseholdMember> {
     DateTime? joinedAt,
   }) {
     return {
-      if (householdId != null) 'household_id': householdId,
-      if (userId != null) 'user_id': userId,
-      if (role != null) 'role': role,
+      'household_id': ?householdId,
+      'user_id': ?userId,
+      'role': ?role,
       if (joinedAt != null) 'joined_at': joinedAt.toUtc().toIso8601String(),
     };
   }
@@ -92,10 +92,10 @@ class HouseholdMember implements SupadartClass<HouseholdMember> {
     DateTime? joinedAt,
   }) {
     return {
-      if (householdId != null) 'household_id': householdId,
-      if (userId != null) 'user_id': userId,
-      if (role != null) 'role': role,
-      if (joinedAt != null) 'joined_at': joinedAt,
+      'household_id': ?householdId,
+      'user_id': ?userId,
+      'role': ?role,
+      'joined_at': ?joinedAt,
     };
   }
 

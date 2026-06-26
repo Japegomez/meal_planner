@@ -37,9 +37,9 @@ class ShoppingList implements SupadartClass<ShoppingList> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (householdId != null) 'household_id': householdId,
-      if (userId != null) 'user_id': userId,
+      'id': ?id,
+      'household_id': ?householdId,
+      'user_id': ?userId,
       if (createdAt != null) 'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
@@ -92,10 +92,10 @@ class ShoppingList implements SupadartClass<ShoppingList> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (householdId != null) 'household_id': householdId,
-      if (userId != null) 'user_id': userId,
-      if (createdAt != null) 'created_at': createdAt,
+      'id': ?id,
+      'household_id': ?householdId,
+      'user_id': ?userId,
+      'created_at': ?createdAt,
     };
   }
 

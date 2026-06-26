@@ -37,9 +37,9 @@ class Profile implements SupadartClass<Profile> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (username != null) 'username': username,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
+      'id': ?id,
+      'username': ?username,
+      'avatar_url': ?avatarUrl,
       if (createdAt != null) 'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
@@ -92,10 +92,10 @@ class Profile implements SupadartClass<Profile> {
     DateTime? createdAt,
   }) {
     return {
-      if (id != null) 'id': id,
-      if (username != null) 'username': username,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
-      if (createdAt != null) 'created_at': createdAt,
+      'id': ?id,
+      'username': ?username,
+      'avatar_url': ?avatarUrl,
+      'created_at': ?createdAt,
     };
   }
 
