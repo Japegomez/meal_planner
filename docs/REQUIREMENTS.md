@@ -48,7 +48,7 @@ En una fase posterior se añadirá una red social para descubrir y compartir rec
 | Autenticación | **Supabase Auth** | Email/contraseña + OAuth (Google y Sign in with Apple) en Fase 1 |
 | CI/CD y builds | **Codemagic** | Builds en la nube para iOS y Android, submit automatizado a las stores |
 | Crash reporting | **Sentry** | Captura de excepciones, breadcrumbs, performance traces y alertas; SDK Flutter oficial |
-| Analytics | **PostHog** | Eventos personalizados, funnels y retención; self-hosteable, datos en Europa |
+| Analytics | **Firebase Analytics (GA4)** | Eventos de producto, gratis con límites altos; SDK Flutter oficial (`firebase_analytics`) |
 | Logs en cliente | **`logger`** (Dart) | Logs con niveles (`debug`→`error`), pretty-print en dev, redirigibles a Sentry en prod |
 | Actualizaciones forzadas | **`upgrader`** | Diálogo nativo cuando existe una versión mínima requerida en la store |
 | Valoración en tienda | **`in_app_review`** | Prompt nativo de iOS/Android tras hitos clave (ej. primera semana completada) |
@@ -382,7 +382,7 @@ lib/
 | `flutter_slidable` | Swipe en ítems de lista |
 | `cached_network_image` | Caché de fotos de recetas |
 | `sentry_flutter` | Crash reporting y performance traces |
-| `posthog_flutter` | Analytics y funnels de usuario |
+| `firebase_core` + `firebase_analytics` | Analytics de producto (GA4) |
 | `logger` | Logs estructurados con niveles en cliente |
 | `upgrader` | Diálogo de actualización forzada desde la store |
 | `in_app_review` | Prompt nativo de valoración en tienda |

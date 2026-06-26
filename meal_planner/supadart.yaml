@@ -1,0 +1,23 @@
+# Supadart — https://github.com/mmvergara/supadart
+# Credentials (local .env, never commit):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY  — required to fetch schema (not for the app)
+# Run: dart run supadart  (from meal_planner/) or tool/generate_models.ps1
+
+output: lib/core/supabase/models/
+separated: true
+dart: false
+
+# Optional PascalCase overrides (table name → class name)
+mappings:
+  profiles: Profile
+  households: Household
+  household_members: HouseholdMember
+  recipes: Recipe
+  ingredients: Ingredient
+  recipe_steps: RecipeStep
+  nutrition_info: NutritionInfo
+  weekly_plans: WeeklyPlan
+  plan_slots: PlanSlot
+  shopping_lists: ShoppingList
+  shopping_items: ShoppingItem

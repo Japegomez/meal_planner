@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 26/06/2026 (Fase 1 en progreso — completado hasta Supabase 3c)
+> Actualizado: 26/06/2026 (Fase 1 — Supadart, Firebase Analytics, prueba local emulador)
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -9,7 +9,7 @@
 
 | Fase                    | Estado   | Descripción                                                                   |
 | ----------------------- | -------- | ----------------------------------------------------------------------------- |
-| Fase 1 — Setup          | En progreso | Flutter + Supabase (3a–3c) hecho; pendiente OAuth Google/Apple, Sentry/Firebase, Codemagic |
+| Fase 1 — Setup          | En progreso | Flutter + Supabase + Supadart + Firebase (código); pendiente OAuth, Firebase Console, Codemagic |
 | Fase 2 — Auth y perfiles| Pendiente | Email/contraseña, OAuth Google/Apple, hogar compartido                       |
 | Fase 3 — Recetario      | Pendiente | CRUD recetas, ingredientes, pasos, fotos, nutrición                          |
 | Fase 4 — Planificador   | Pendiente | Vista semanal, slots, escalado de raciones, Realtime                         |
@@ -31,8 +31,39 @@
   - Remote `origin` configurado → `https://github.com/Japegomez/meal_planner.git`
   - Pendiente: primer commit, push y protección de ramas `main` / `develop`
 - [x] Configurar GitHub Actions básico (análisis estático + `flutter test` en cada PR)
-- [x] Añadir `.env.example` con variables de entorno necesarias (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SENTRY_DSN`, `GOOGLE_*`)
-  - Las variables reales en `.env` local (gitignored); en Codemagic como Environment Variables
+- [x] Añadir `.env.example` y `dart_defines.example.json` (`SUPABASE_*`, `SENTRY_DSN`, `GOOGLE_*`)
+  - Valores reales en `dart_defines.json` / `.env` local (gitignored); Codemagic como Environment Variables
+
+### Prueba local (emulador Android)
+
+- [x] Documentar flujo de ejecución local con `dart_defines.json`
+- [ ] Verificar app en emulador Android (manual)
+
+**Preparación (una vez):**
+
+```powershell
+cd meal_planner
+copy dart_defines.example.json dart_defines.json
+# Editar dart_defines.json: SUPABASE_URL, SUPABASE_ANON_KEY, GOOGLE_*
+flutter emulators --launch Pixel_8   # o ▶ en Android Studio → Device Manager
+```
+
+Esperar arranque completo. `flutter emulators` lista AVDs instalados; `flutter devices` solo muestra dispositivos **encendidos**:
+
+```powershell
+adb devices          # debe mostrar emulator-5554   device
+flutter devices
+```
+
+**Ejecutar la app:**
+
+```powershell
+flutter run -d emulator-5554 --dart-define-from-file=dart_defines.json
+```
+
+Alternativa (cualquier Android conectado): `-d android`. En Windows, si Firebase falla al compilar: `-d chrome`.
+
+Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core/config/env.dart` en compile time.
 
 ### Setup Supabase
 
@@ -53,7 +84,7 @@
   - iOS: bundle `com.japegomez.mealPlanner`
 - [ ] Configurar proveedor Google en Supabase Auth (Client ID + Secret del cliente **Web**; activar **Skip nonce check**)
 - [ ] Configurar proveedor OAuth Apple en Supabase Auth (Key ID + Team ID de Apple Developer)
-- [ ] Generar tipos Dart desde el esquema de Supabase
+- [x] Generar modelos Dart con **Supadart** (`meal_planner/lib/core/supabase/models/`)
 
 ### Servicios externos (observabilidad y UX)
 
@@ -79,7 +110,7 @@
 - [ ] Instalar **`upgrader`**
   - Envolver `MaterialApp` con `UpgradeAlert`; configurar versión mínima cuando sea necesario forzar actualización por cambios de schema
 - [ ] Instalar **`in_app_review`**
-  - Disparar prompt después de que el usuario complete su primera semana planificada; cooldown de 30 días entre prompts
+  - Disparar prompt después de que el usuario complete su primera semana planificada; cooldown de 6 días entre prompts
 
 ### Setup CI/CD (Codemagic)
 

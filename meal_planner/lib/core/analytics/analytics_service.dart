@@ -1,24 +1,40 @@
-import 'package:meal_planner/core/config/env.dart';
-import 'package:posthog_flutter/posthog_flutter.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:meal_planner/core/firebase/firebase_options.dart';
+import 'package:meal_planner/core/utils/logger.dart';
 
 abstract final class AnalyticsService {
+  static FirebaseAnalytics? _analytics;
+
+  static bool get isEnabled => _analytics != null;
+
   static Future<void> initialize() async {
-    if (!Env.hasPosthog) return;
+    if (!DefaultFirebaseOptions.isConfigured) {
+      log.w(
+        'Firebase Analytics disabled — run `flutterfire configure` in meal_planner/',
+      );
+      return;
+    }
 
-    final config = PostHogConfig(Env.posthogApiKey)
-      ..host = Env.posthogHost
-      ..captureApplicationLifecycleEvents = true;
-
-    await Posthog().setup(config);
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      _analytics = FirebaseAnalytics.instance;
+      log.i('Firebase Analytics initialized');
+    } catch (e, st) {
+      log.w('Firebase Analytics init failed: $e\n$st');
+    }
   }
 
   static Future<void> trackAppOpened() async {
-    if (!Env.hasPosthog) return;
-    await Posthog().capture(eventName: 'app_opened');
+    await _analytics?.logAppOpen();
   }
 
-  static Future<void> track(String event, {Map<String, Object>? properties}) async {
-    if (!Env.hasPosthog) return;
-    await Posthog().capture(eventName: event, properties: properties);
+  static Future<void> track(
+    String event, {
+    Map<String, Object>? properties,
+  }) async {
+    await _analytics?.logEvent(name: event, parameters: properties);
   }
 }

@@ -5,3 +5,11 @@
 
 # Cursor session artifacts (rules are tracked)
 .cursor/plans/
+
+# Apple Sign-In private keys (never commit)
+*.p8
+AuthKey.p8
+
+# Supabase CLI temp
+supabase/.temp/
+/scripts/
