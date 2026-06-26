@@ -1,0 +1,34 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "meal_planner (Windows)",
+      "cwd": "${workspaceFolder}/meal_planner",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define-from-file=dart_defines.json"
+      ]
+    },
+    {
+      "name": "meal_planner (Chrome)",
+      "cwd": "${workspaceFolder}/meal_planner",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome",
+      "toolArgs": [
+        "--dart-define-from-file=dart_defines.json"
+      ]
+    },
+    {
+      "name": "meal_planner (Android)",
+      "cwd": "${workspaceFolder}/meal_planner",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "android",
+      "toolArgs": [
+        "--dart-define-from-file=dart_defines.json"
+      ]
+    }
+  ]
+}

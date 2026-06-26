@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 26/06/2026 (Fase 1 en progreso — completado hasta Supabase 3c)
+> Actualizado: 26/06/2026 (Fase 1 — OAuth/Sentry/Firebase hechos; pendiente Codemagic)
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -9,7 +9,7 @@
 
 | Fase                    | Estado   | Descripción                                                                   |
 | ----------------------- | -------- | ----------------------------------------------------------------------------- |
-| Fase 1 — Setup          | En progreso | Flutter + Supabase (3a–3c) hecho; pendiente OAuth Google/Apple, Sentry/Firebase, Codemagic |
+| Fase 1 — Setup          | En progreso | Flutter + Supabase + OAuth + Sentry + Firebase hechos; **pendiente Codemagic** |
 | Fase 2 — Auth y perfiles| Pendiente | Email/contraseña, OAuth Google/Apple, hogar compartido                       |
 | Fase 3 — Recetario      | Pendiente | CRUD recetas, ingredientes, pasos, fotos, nutrición                          |
 | Fase 4 — Planificador   | Pendiente | Vista semanal, slots, escalado de raciones, Realtime                         |
@@ -31,8 +31,39 @@
   - Remote `origin` configurado → `https://github.com/Japegomez/meal_planner.git`
   - Pendiente: primer commit, push y protección de ramas `main` / `develop`
 - [x] Configurar GitHub Actions básico (análisis estático + `flutter test` en cada PR)
-- [x] Añadir `.env.example` con variables de entorno necesarias (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SENTRY_DSN`, `GOOGLE_*`)
-  - Las variables reales en `.env` local (gitignored); en Codemagic como Environment Variables
+- [x] Añadir `.env.example` y `dart_defines.example.json` (`SUPABASE_*`, `SENTRY_DSN`, `GOOGLE_*`)
+  - Valores reales en `dart_defines.json` / `.env` local (gitignored); Codemagic como Environment Variables
+
+### Prueba local (emulador Android)
+
+- [x] Documentar flujo de ejecución local con `dart_defines.json`
+- [ ] Verificar app en emulador Android (manual)
+
+**Preparación (una vez):**
+
+```powershell
+cd meal_planner
+copy dart_defines.example.json dart_defines.json
+# Editar dart_defines.json: SUPABASE_URL, SUPABASE_ANON_KEY, GOOGLE_*
+flutter emulators --launch Pixel_8   # o ▶ en Android Studio → Device Manager
+```
+
+Esperar arranque completo. `flutter emulators` lista AVDs instalados; `flutter devices` solo muestra dispositivos **encendidos**:
+
+```powershell
+adb devices          # debe mostrar emulator-5554   device
+flutter devices
+```
+
+**Ejecutar la app:**
+
+```powershell
+flutter run -d emulator-5554 --dart-define-from-file=dart_defines.json
+```
+
+Alternativa: flutter run -d chrome --dart-define-from-file=dart_defines.json
+
+Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core/config/env.dart` en compile time.
 
 ### Setup Supabase
 
@@ -47,48 +78,52 @@
 - [x] Crear índices de rendimiento (recetas por usuario, plan por semana, lista de compra activa)
 - [x] Configurar Supabase Storage: bucket `recipe-photos` (privado, acceso por usuario)
 - [x] Activar Supabase Realtime en `plan_slots` y `shopping_items` (para hogares compartidos)
-- [ ] Configurar Google Sign-In nativo en Google Cloud (3 clientes OAuth: Web, Android, iOS)
+- [x] Configurar Google Sign-In nativo en Google Cloud (3 clientes OAuth: Web, Android, iOS)
   - Web: Client ID + Secret → Supabase Auth; redirect URI de Supabase
   - Android: package `com.japegomez.meal_planner` + SHA-1 debug y release
   - iOS: bundle `com.japegomez.mealPlanner`
-- [ ] Configurar proveedor Google en Supabase Auth (Client ID + Secret del cliente **Web**; activar **Skip nonce check**)
-- [ ] Configurar proveedor OAuth Apple en Supabase Auth (Key ID + Team ID de Apple Developer)
-- [ ] Generar tipos Dart desde el esquema de Supabase
+- [x] Configurar proveedor Google en Supabase Auth (Client ID + Secret del cliente **Web**; activar **Skip nonce check**)
+- [x] Configurar proveedor OAuth Apple en Supabase Auth (Key ID + Team ID de Apple Developer)
+- [x] Generar modelos Dart con **Supadart** (`meal_planner/lib/core/supabase/models/`)
 
 ### Servicios externos (observabilidad y UX)
 
-- [ ] Instalar y configurar **Sentry** (`sentry_flutter`)
+- [x] Instalar y configurar **Sentry** (`sentry_flutter`)
   - Inicializar en `main.dart` con `SentryFlutter.init`; DSN en variable de entorno `SENTRY_DSN`
   - `tracesSampleRate: 0.2` en producción; `1.0` en desarrollo
   - Añadir `SENTRY_DSN` a Codemagic Environment Variables
 - [x] Integrar **Firebase Analytics** en código (`firebase_core`, `firebase_analytics`, `AnalyticsService`)
   - Init en `main.dart`; sin API keys en `--dart-define` (config vía `firebase_options.dart`)
   - Quitar `posthog_flutter` y variables `POSTHOG_*`
-- [ ] Vincular proyecto Firebase (manual)
-  - Crear proyecto en [Firebase Console](https://console.firebase.google.com)
-  - Apps: Android `com.japegomez.meal_planner`, iOS `com.japegomez.mealPlanner`
-  - En `meal_planner/`: `dart pub global activate flutterfire_cli` → `flutterfire configure`
-  - Eventos clave: `app_opened`, `recipe_created`, `recipe_added_to_planner`, `shopping_list_exported`
-  - Codemagic: grupo `firebase` con `google-services.json` y `GoogleService-Info.plist`
-- [ ] Configurar **`logger`** (Dart)
-  - Instancia global en `lib/core/utils/logger.dart`; en producción redirigir nivel `error`/`warning` a Sentry como breadcrumbs
-- [ ] Instalar **`flutter_secure_storage`**
-  - Guardar token de sesión de Supabase aquí en lugar de SharedPreferences
-- [ ] Instalar **`connectivity_plus`**
-  - Provider global `ConnectivityNotifier` (Riverpod); banner «Sin conexión» en scaffold base
-- [ ] Instalar **`upgrader`**
-  - Envolver `MaterialApp` con `UpgradeAlert`; configurar versión mínima cuando sea necesario forzar actualización por cambios de schema
-- [ ] Instalar **`in_app_review`**
-  - Disparar prompt después de que el usuario complete su primera semana planificada; cooldown de 30 días entre prompts
+- [x] Vincular proyecto Firebase (manual)
+  - Proyecto `mealplanner-a818e`; apps Android + iOS
+  - `flutterfire configure` → `lib/core/firebase/firebase_options.dart`
+  - Archivos commiteados: `google-services.json`, `GoogleService-Info.plist`
+  - **No** requiere grupo env `firebase` en Codemagic (van en el repo)
+- [x] Configurar **`logger`** (Dart)
+  - Instancia global en `lib/core/utils/logger.dart`
+  - En producción: `error`/`warning` → breadcrumbs Sentry vía `SentryLogOutput`
+- [x] Instalar **`flutter_secure_storage`**
+  - Sesión Supabase en Keychain/Keystore: `SecureLocalStorage` + `SecureGotrueAsyncStorage` (`supabase_client.dart`)
+- [x] Instalar **`connectivity_plus`**
+  - `connectivityProvider` (Riverpod) + banner «Sin conexión» global en `app.dart` (`ConnectivityBanner`)
+- [x] Instalar **`upgrader`**
+  - `UpgradeAlert` envuelve la app en `app.dart`
+- [x] Instalar **`in_app_review`**
+  - `ReviewPromptService` en `lib/core/review/review_prompt_service.dart`
+  - Cooldown 6 días en secure storage; llamar `onFirstWeekCompleted()` desde el planificador (Fase 4)
 
-### Setup CI/CD (Codemagic)
+### Setup CI/CD (Codemagic) ⏳
 
+Guía paso a paso: [`docs/CODEMAGIC.md`](CODEMAGIC.md)
+
+- [x] Definir `codemagic.yaml` (workflows Android AAB + iOS IPA, grupos `supabase`/`sentry`/`google`)
 - [ ] Crear cuenta y conectar repositorio en Codemagic
-- [ ] Configurar `codemagic.yaml` con workflow de build Android (`flutter build appbundle`)
-- [ ] Configurar workflow de build iOS (`flutter build ipa`)
-- [ ] Añadir Environment Variables en Codemagic (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, certificados de firma)
-- [ ] Configurar firma Android (keystore) en Codemagic
-- [ ] Configurar firma iOS (provisioning profile + certificado) en Codemagic
+- [ ] Configurar **Project path** = `meal_planner`
+- [ ] Crear grupos env: `supabase`, `sentry`, `google`
+- [ ] Subir keystore Android (referencia `meal_planner_keystore`)
+- [ ] Registrar SHA-1 **release** en Google Cloud (cliente Android OAuth)
+- [ ] Conectar Apple Developer para firma iOS
 - [ ] Primer build de prueba Android
 - [ ] Primer build de prueba iOS
 

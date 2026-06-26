@@ -4,9 +4,12 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
+      android_signing:
+        - meal_planner_keystore
       groups:
         - supabase
         - sentry
+        - google
       vars:
         PACKAGE_NAME: com.japegomez.meal_planner
     triggering:
@@ -34,7 +37,9 @@ workflows:
           cd meal_planner && flutter build appbundle --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=SENTRY_DSN=$SENTRY_DSN
+            --dart-define=SENTRY_DSN=$SENTRY_DSN \
+            --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID \
+            --dart-define=GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
     artifacts:
       - meal_planner/build/**/outputs/**/*.aab
       - meal_planner/build/**/outputs/**/mapping.txt
@@ -53,6 +58,7 @@ workflows:
       groups:
         - supabase
         - sentry
+        - google
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.japegomez.mealPlanner
@@ -80,7 +86,9 @@ workflows:
           cd meal_planner && flutter build ipa --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=SENTRY_DSN=$SENTRY_DSN
+            --dart-define=SENTRY_DSN=$SENTRY_DSN \
+            --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID \
+            --dart-define=GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
     artifacts:
       - meal_planner/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
