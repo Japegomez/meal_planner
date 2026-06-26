@@ -3,7 +3,9 @@ workflows:
     name: Android Release
     max_build_duration: 60
     instance_type: mac_mini_m2
+    working_directory: meal_planner
     environment:
+      flutter: stable
       android_signing:
         - meal_planner_keystore
       groups:
@@ -20,21 +22,26 @@ workflows:
           include: true
           source: true
     scripts:
+      - name: Verify Flutter project path
+        script: |
+          echo "CM_BUILD_DIR=$CM_BUILD_DIR"
+          echo "PWD=$(pwd)"
+          test -f pubspec.yaml || (echo "ERROR: pubspec.yaml not found in $(pwd)" && exit 1)
       - name: Set up local.properties
         script: |
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/meal_planner/android/local.properties"
       - name: Get Flutter packages
         script: |
-          cd meal_planner && flutter packages pub get
+          flutter pub get
       - name: Flutter analyze
         script: |
-          cd meal_planner && flutter analyze
+          flutter analyze
       - name: Flutter unit tests
         script: |
-          cd meal_planner && flutter test
+          flutter test
       - name: Build Android App Bundle
         script: |
-          cd meal_planner && flutter build appbundle --release \
+          flutter build appbundle --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
             --dart-define=SENTRY_DSN=$SENTRY_DSN \
@@ -44,17 +51,16 @@ workflows:
       - meal_planner/build/**/outputs/**/*.aab
       - meal_planner/build/**/outputs/**/mapping.txt
       - flutter_drive.log
-    publishing:
-      email:
-        notify:
-          success: true
-          failure: true
 
   ios-workflow:
     name: iOS Release
     max_build_duration: 60
     instance_type: mac_mini_m2
+    working_directory: meal_planner
     environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
       groups:
         - supabase
         - sentry
@@ -72,18 +78,23 @@ workflows:
           include: true
           source: true
     scripts:
+      - name: Verify Flutter project path
+        script: |
+          echo "CM_BUILD_DIR=$CM_BUILD_DIR"
+          echo "PWD=$(pwd)"
+          test -f pubspec.yaml || (echo "ERROR: pubspec.yaml not found in $(pwd)" && exit 1)
       - name: Get Flutter packages
         script: |
-          cd meal_planner && flutter packages pub get
+          flutter pub get
       - name: Flutter analyze
         script: |
-          cd meal_planner && flutter analyze
+          flutter analyze
       - name: Flutter unit tests
         script: |
-          cd meal_planner && flutter test
+          flutter test
       - name: Build iOS IPA
         script: |
-          cd meal_planner && flutter build ipa --release \
+          flutter build ipa --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
             --dart-define=SENTRY_DSN=$SENTRY_DSN \
@@ -93,8 +104,3 @@ workflows:
       - meal_planner/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
-    publishing:
-      email:
-        notify:
-          success: true
-          failure: true
