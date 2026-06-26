@@ -9,7 +9,7 @@
 
 | Fase                    | Estado   | Descripción                                                                   |
 | ----------------------- | -------- | ----------------------------------------------------------------------------- |
-| Fase 1 — Setup          | En progreso | Flutter + Supabase (3a–3c) hecho; pendiente OAuth Google/Apple, Sentry/PostHog, Codemagic |
+| Fase 1 — Setup          | En progreso | Flutter + Supabase (3a–3c) hecho; pendiente OAuth Google/Apple, Sentry/Firebase, Codemagic |
 | Fase 2 — Auth y perfiles| Pendiente | Email/contraseña, OAuth Google/Apple, hogar compartido                       |
 | Fase 3 — Recetario      | Pendiente | CRUD recetas, ingredientes, pasos, fotos, nutrición                          |
 | Fase 4 — Planificador   | Pendiente | Vista semanal, slots, escalado de raciones, Realtime                         |
@@ -26,12 +26,12 @@
 - [x] Configurar `flutter_lints` y `analysis_options.yaml`
 - [x] Definir estructura de carpetas Feature-First (`lib/core/`, `lib/features/`, `lib/router/`)
 - [x] Instalar dependencias base (`supabase_flutter`, `flutter_riverpod`, `go_router`)
-  - También instaladas: Sentry, PostHog, logger, secure storage, connectivity, upgrader, in_app_review, google_sign_in, sign_in_with_apple
+  - También instaladas: Sentry, Firebase Analytics, logger, secure storage, connectivity, upgrader, in_app_review, google_sign_in, sign_in_with_apple
 - [x] Crear repositorio en GitHub y primer commit
   - Remote `origin` configurado → `https://github.com/Japegomez/meal_planner.git`
   - Pendiente: primer commit, push y protección de ramas `main` / `develop`
 - [x] Configurar GitHub Actions básico (análisis estático + `flutter test` en cada PR)
-- [x] Añadir `.env.example` con variables de entorno necesarias (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SENTRY_DSN`, `POSTHOG_API_KEY`, `GOOGLE_*`)
+- [x] Añadir `.env.example` con variables de entorno necesarias (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SENTRY_DSN`, `GOOGLE_*`)
   - Las variables reales en `.env` local (gitignored); en Codemagic como Environment Variables
 
 ### Setup Supabase
@@ -60,10 +60,16 @@
 - [ ] Instalar y configurar **Sentry** (`sentry_flutter`)
   - Inicializar en `main.dart` con `SentryFlutter.init`; DSN en variable de entorno `SENTRY_DSN`
   - `tracesSampleRate: 0.2` en producción; `1.0` en desarrollo
-  - Añadir `SENTRY_DSN` y `SENTRY_AUTH_TOKEN` (source maps) a Codemagic Environment Variables
-- [ ] Instalar y configurar **PostHog** (`posthog_flutter`)
-  - Host EU (`https://eu.posthog.com`); API key en variable de entorno `POSTHOG_API_KEY`
-  - Evento inicial: `app_opened`; eventos clave a instrumentar: `recipe_created`, `recipe_added_to_planner`, `shopping_list_exported`
+  - Añadir `SENTRY_DSN` a Codemagic Environment Variables
+- [x] Integrar **Firebase Analytics** en código (`firebase_core`, `firebase_analytics`, `AnalyticsService`)
+  - Init en `main.dart`; sin API keys en `--dart-define` (config vía `firebase_options.dart`)
+  - Quitar `posthog_flutter` y variables `POSTHOG_*`
+- [ ] Vincular proyecto Firebase (manual)
+  - Crear proyecto en [Firebase Console](https://console.firebase.google.com)
+  - Apps: Android `com.japegomez.meal_planner`, iOS `com.japegomez.mealPlanner`
+  - En `meal_planner/`: `dart pub global activate flutterfire_cli` → `flutterfire configure`
+  - Eventos clave: `app_opened`, `recipe_created`, `recipe_added_to_planner`, `shopping_list_exported`
+  - Codemagic: grupo `firebase` con `google-services.json` y `GoogleService-Info.plist`
 - [ ] Configurar **`logger`** (Dart)
   - Instancia global en `lib/core/utils/logger.dart`; en producción redirigir nivel `error`/`warning` a Sentry como breadcrumbs
 - [ ] Instalar **`flutter_secure_storage`**
@@ -244,7 +250,7 @@
 
 ### Android — Google Play
 
-- [ ] Configurar workflow Codemagic: `develop` → build Android de prueba; `main` → build + submit
+- [ ] Configurar workflow Codemagic: push a `main` → build release (Android AAB + iOS IPA); `develop` solo CI en GitHub Actions
 - [ ] Primera subida manual del AAB a **Pruebas internas** en Google Play Console (obligatorio para el primer release)
 - [ ] Configurar servicio de cuenta en Google Cloud para submit automatizado
 - [ ] App instalable vía enlace de testers internos

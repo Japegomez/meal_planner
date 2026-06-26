@@ -7,16 +7,12 @@ workflows:
       groups:
         - supabase
         - sentry
-        - posthog
       vars:
         PACKAGE_NAME: com.japegomez.meal_planner
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: develop
-          include: true
-          source: true
         - pattern: main
           include: true
           source: true
@@ -38,9 +34,7 @@ workflows:
           cd meal_planner && flutter build appbundle --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=SENTRY_DSN=$SENTRY_DSN \
-            --dart-define=POSTHOG_API_KEY=$POSTHOG_API_KEY \
-            --dart-define=POSTHOG_HOST=$POSTHOG_HOST
+            --dart-define=SENTRY_DSN=$SENTRY_DSN
     artifacts:
       - meal_planner/build/**/outputs/**/*.aab
       - meal_planner/build/**/outputs/**/mapping.txt
@@ -59,19 +53,15 @@ workflows:
       groups:
         - supabase
         - sentry
-        - posthog
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.japegomez.meal_planner
+        bundle_identifier: com.japegomez.mealPlanner
       vars:
-        BUNDLE_ID: com.japegomez.meal_planner
+        BUNDLE_ID: com.japegomez.mealPlanner
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: develop
-          include: true
-          source: true
         - pattern: main
           include: true
           source: true
@@ -90,9 +80,7 @@ workflows:
           cd meal_planner && flutter build ipa --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=SENTRY_DSN=$SENTRY_DSN \
-            --dart-define=POSTHOG_API_KEY=$POSTHOG_API_KEY \
-            --dart-define=POSTHOG_HOST=$POSTHOG_HOST
+            --dart-define=SENTRY_DSN=$SENTRY_DSN
     artifacts:
       - meal_planner/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
