@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.1 — Fase 1 (sin red social)
+> **Versión:** 0.2 — Fase 1 completada (infraestructura)
 > **Fecha:** Junio 2026
-> **Estado:** Borrador
+> **Estado:** Fase 1 cerrada; desarrollo activo en Fase 2
 
 ---
 

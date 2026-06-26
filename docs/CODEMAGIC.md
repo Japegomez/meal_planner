@@ -1,8 +1,8 @@
 # Codemagic — guía de setup (Fase 1)
 
-> **Estado:** código listo (`codemagic.yaml` + firma Android en Gradle). **Todo lo demás es manual** en la UI de Codemagic y consolas externas.
+> **Estado:** Fase 1 completada ✅ — CI/CD operativo (GitHub Actions + Codemagic Android/iOS).
 
-Guía detallada paso a paso: **[§ Pasos manuales (detallados)](#pasos-manuales-detallados)** al final de este documento.
+Guía de referencia histórica: **[§ Pasos manuales (detallados)](#pasos-manuales-detallados)**.
 
 ## División de responsabilidades
 
@@ -10,10 +10,10 @@ Guía detallada paso a paso: **[§ Pasos manuales (detallados)](#pasos-manuales-
 |-----|-------|--------|
 | CI (analyze + test) | GitHub Actions en `develop` / PRs | ✅ |
 | `codemagic.yaml` | Raíz del repo | ✅ |
-| CD (AAB + IPA) | Codemagic en push a `main` | ⏳ manual |
+| CD (AAB + IPA) | Codemagic en push a `main` | ✅ |
 | Config Firebase | Commiteada en el repo | ✅ |
-| Secrets runtime | Grupos env en Codemagic | ⏳ manual |
-| Firma Android/iOS | Codemagic Code signing | ⏳ manual |
+| Secrets runtime | Grupos env en Codemagic | ✅ |
+| Firma Android/iOS | Codemagic Code signing | ✅ |
 
 **Monorepo:** `codemagic.yaml` en la raíz; **Project path** en Codemagic = `meal_planner`.  
 El yaml usa `working_directory: meal_planner` — los scripts no hacen `cd meal_planner`.
@@ -22,14 +22,14 @@ El yaml usa `working_directory: meal_planner` — los scripts no hacen `cd meal_
 
 ## Checklist rápido
 
-- [ ] 1. Cuenta Codemagic + conectar GitHub
-- [ ] 2. Project path = `meal_planner` + yaml desde raíz
-- [ ] 3. Grupos env: `supabase`, `sentry`, `google`
-- [ ] 4. Keystore Android → ref `meal_planner_keystore`
-- [ ] 5. SHA-1 release → Google Cloud (cliente Android OAuth)
-- [ ] 6. Apple Developer conectado en Codemagic (iOS)
-- [ ] 7. Primer build Android (rama `main`)
-- [ ] 8. Primer build iOS (rama `main`)
+- [x] 1. Cuenta Codemagic + conectar GitHub
+- [x] 2. Project path = `meal_planner` + yaml desde raíz
+- [x] 3. Grupos env: `supabase`, `sentry`, `google`
+- [x] 4. Keystore Android → ref `meal_planner_keystore`
+- [x] 5. SHA-1 release → Google Cloud (cliente Android OAuth)
+- [x] 6. Apple Developer conectado en Codemagic (iOS)
+- [x] 7. Primer build Android (rama `main`)
+- [x] 8. Primer build iOS (rama `main`)
 
 ---
 
@@ -72,7 +72,7 @@ Valores = los mismos que en tu `dart_defines.json` local.
 | **Android Release** | Push a `main` | `.aab` |
 | **iOS Release** | Push a `main` | `.ipa` |
 
-Pipeline: `pub get` → `analyze` → `test` → build release.
+Pipeline: `flutter clean` → `pub get` → `analyze lib test` → `test` → build release.
 
 ---
 
@@ -81,6 +81,7 @@ Pipeline: `pub get` → `analyze` → `test` → build release.
 | Problema | Solución |
 |----------|----------|
 | `Failed to install dependencies... /Users/builder/clone` | **Project path** → Rescan → elige `meal_planner` (no `.`) |
+| `flutter analyze` falla con cientos de issues en `build/.../SourcePackages/firebase_analytics/...` | Normal si analyze escanea todo el árbol. En el repo: `flutter analyze --fatal-infos lib test` + `exclude: build/**` en `analysis_options.yaml`. Ver PR #4. |
 | Build no arranca | Project path = `meal_planner`; yaml en raíz |
 | Variables vacías | Grupos con nombres exactos; marcar Secure |
 | Android signing failed | Ref keystore = `meal_planner_keystore` |
@@ -227,7 +228,13 @@ En [Apple Developer](https://developer.apple.com/account/) verifica (debería es
 6. Al terminar: **Artifacts** → descarga el `.aab`
 
 **Si falla en signing:** revisa que la ref del keystore sea `meal_planner_keystore`.  
-**Si falla en analyze/test:** reproduce localmente con `cd meal_planner && flutter analyze && flutter test`.
+**Si falla en analyze/test:** reproduce localmente:
+
+```powershell
+cd meal_planner
+flutter analyze --fatal-infos lib test
+flutter test
+```
 
 ### Paso 7 — Primer build iOS
 
