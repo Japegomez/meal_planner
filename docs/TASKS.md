@@ -115,17 +115,30 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### Setup CI/CD (Codemagic) ⏳
 
-Guía paso a paso: [`docs/CODEMAGIC.md`](CODEMAGIC.md)
+> **Código listo.** Todo lo que queda es configuración manual en Codemagic + consolas.  
+> Guía detallada: [`docs/CODEMAGIC.md`](CODEMAGIC.md) → sección **Pasos manuales (detallados)**.
 
-- [x] Definir `codemagic.yaml` (workflows Android AAB + iOS IPA, grupos `supabase`/`sentry`/`google`)
-- [ ] Crear cuenta y conectar repositorio en Codemagic
-- [ ] Configurar **Project path** = `meal_planner`
-- [ ] Crear grupos env: `supabase`, `sentry`, `google`
-- [ ] Subir keystore Android (referencia `meal_planner_keystore`)
-- [ ] Registrar SHA-1 **release** en Google Cloud (cliente Android OAuth)
-- [ ] Conectar Apple Developer para firma iOS
-- [ ] Primer build de prueba Android
-- [ ] Primer build de prueba iOS
+#### Hecho en el repo ✅
+
+- [x] `codemagic.yaml` — workflows Android AAB + iOS IPA
+- [x] Grupos declarados: `supabase`, `sentry`, `google`
+- [x] `working_directory: meal_planner` (monorepo)
+- [x] Firma Android en Gradle (`CM_KEYSTORE_*` + ref `meal_planner_keystore`)
+- [x] Firebase commiteado (sin grupo env)
+
+#### Pendiente — manual en Codemagic / consolas
+
+- [ ] **1.** Cuenta [codemagic.io](https://codemagic.io) + conectar repo `Japegomez/meal_planner`
+- [ ] **2.** Project path = `meal_planner`; config = `codemagic.yaml` desde raíz
+- [ ] **3.** Grupo `supabase`: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (Secure)
+- [ ] **4.** Grupo `sentry`: `SENTRY_DSN` (Secure)
+- [ ] **5.** Grupo `google`: `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` (Secure)
+- [ ] **6.** Generar keystore + subir a Codemagic (ref `meal_planner_keystore`)
+- [ ] **7.** SHA-1 release del keystore → Google Cloud (cliente OAuth Android)
+- [ ] **8.** Conectar Apple Developer en Codemagic (firma iOS)
+- [ ] **9.** Primer build manual **Android Release** en rama `main`
+- [ ] **10.** Primer build manual **iOS Release** en rama `main`
+- [ ] **11.** Merge `develop` → `main` para activar CD automático en push
 
 ---
 
