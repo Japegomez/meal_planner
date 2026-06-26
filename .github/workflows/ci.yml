@@ -26,7 +26,7 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze
+        run: flutter analyze --fatal-infos lib test
 
-      - name: Run tests
+      - name: Run unit tests
         run: flutter test

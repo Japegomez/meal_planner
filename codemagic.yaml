@@ -30,12 +30,15 @@ workflows:
       - name: Set up local.properties
         script: |
           echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/meal_planner/android/local.properties"
+      - name: Clean stale build artifacts
+        script: |
+          flutter clean
       - name: Get Flutter packages
         script: |
           flutter pub get
       - name: Flutter analyze
         script: |
-          flutter analyze
+          flutter analyze --fatal-infos lib test
       - name: Flutter unit tests
         script: |
           flutter test
@@ -83,12 +86,15 @@ workflows:
           echo "CM_BUILD_DIR=$CM_BUILD_DIR"
           echo "PWD=$(pwd)"
           test -f pubspec.yaml || (echo "ERROR: pubspec.yaml not found in $(pwd)" && exit 1)
+      - name: Clean stale build artifacts
+        script: |
+          flutter clean
       - name: Get Flutter packages
         script: |
           flutter pub get
       - name: Flutter analyze
         script: |
-          flutter analyze
+          flutter analyze --fatal-infos lib test
       - name: Flutter unit tests
         script: |
           flutter test

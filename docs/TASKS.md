@@ -1,16 +1,16 @@
 # Tareas - MealPlanner
 
-> Actualizado: 26/06/2026 (Fase 1 — OAuth/Sentry/Firebase hechos; pendiente Codemagic)
+> Actualizado: 26/06/2026 — **Fase 1 completada** ✅
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
 
 ## Estado del proyecto
 
-| Fase                    | Estado   | Descripción                                                                   |
-| ----------------------- | -------- | ----------------------------------------------------------------------------- |
-| Fase 1 — Setup          | En progreso | Flutter + Supabase + OAuth + Sentry + Firebase hechos; **pendiente Codemagic** |
-| Fase 2 — Auth y perfiles| Pendiente | Email/contraseña, OAuth Google/Apple, hogar compartido                       |
+| Fase                    | Estado     | Descripción                                                                   |
+| ----------------------- | ---------- | ----------------------------------------------------------------------------- |
+| Fase 1 — Setup          | Completada | Flutter, Supabase, OAuth, CI/CD Codemagic, builds Android + iOS verificados  |
+| Fase 2 — Auth y perfiles| Pendiente  | Email/contraseña, OAuth Google/Apple, hogar compartido                       |
 | Fase 3 — Recetario      | Pendiente | CRUD recetas, ingredientes, pasos, fotos, nutrición                          |
 | Fase 4 — Planificador   | Pendiente | Vista semanal, slots, escalado de raciones, Realtime                         |
 | Fase 5 — Lista compra   | Pendiente | Generación automática, agrupación, exportación WhatsApp                      |
@@ -24,20 +24,21 @@
 
 - [x] Inicializar proyecto Flutter: `flutter create meal_planner`
 - [x] Configurar `flutter_lints` y `analysis_options.yaml`
+  - Excluye `build/**` y `.dart_tool/**` del analyzer (evita escanear artefactos de dependencias en CI)
 - [x] Definir estructura de carpetas Feature-First (`lib/core/`, `lib/features/`, `lib/router/`)
 - [x] Instalar dependencias base (`supabase_flutter`, `flutter_riverpod`, `go_router`)
   - También instaladas: Sentry, Firebase Analytics, logger, secure storage, connectivity, upgrader, in_app_review, google_sign_in, sign_in_with_apple
 - [x] Crear repositorio en GitHub y primer commit
-  - Remote `origin` configurado → `https://github.com/Japegomez/meal_planner.git`
-  - Pendiente: primer commit, push y protección de ramas `main` / `develop`
+  - Remote `origin` → `https://github.com/Japegomez/meal_planner.git`
 - [x] Configurar GitHub Actions básico (análisis estático + `flutter test` en cada PR)
+  - Comando: `flutter analyze --fatal-infos lib test` (solo código de la app, no `build/`)
 - [x] Añadir `.env.example` y `dart_defines.example.json` (`SUPABASE_*`, `SENTRY_DSN`, `GOOGLE_*`)
   - Valores reales en `dart_defines.json` / `.env` local (gitignored); Codemagic como Environment Variables
 
 ### Prueba local (emulador Android)
 
 - [x] Documentar flujo de ejecución local con `dart_defines.json`
-- [ ] Verificar app en emulador Android (manual)
+- [x] Verificar app en emulador Android (manual)
 
 **Preparación (una vez):**
 
@@ -113,32 +114,35 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
   - `ReviewPromptService` en `lib/core/review/review_prompt_service.dart`
   - Cooldown 6 días en secure storage; llamar `onFirstWeekCompleted()` desde el planificador (Fase 4)
 
-### Setup CI/CD (Codemagic) ⏳
+### Setup CI/CD (Codemagic) ✅
 
-> **Código listo.** Todo lo que queda es configuración manual en Codemagic + consolas.  
-> Guía detallada: [`docs/CODEMAGIC.md`](CODEMAGIC.md) → sección **Pasos manuales (detallados)**.
+> Guía de referencia: [`docs/CODEMAGIC.md`](CODEMAGIC.md)
 
-#### Hecho en el repo ✅
+#### Repo y pipelines
 
 - [x] `codemagic.yaml` — workflows Android AAB + iOS IPA
 - [x] Grupos declarados: `supabase`, `sentry`, `google`
 - [x] `working_directory: meal_planner` (monorepo)
 - [x] Firma Android en Gradle (`CM_KEYSTORE_*` + ref `meal_planner_keystore`)
 - [x] Firebase commiteado (sin grupo env)
+- [x] Fix `flutter analyze` en CI/CD: `lib test` + `--fatal-infos` + `flutter clean` (Android e iOS)
+- [x] Merge PR [#4](https://github.com/Japegomez/meal_planner/pull/4) (`develop` → `main`)
 
-#### Pendiente — manual en Codemagic / consolas
+#### Codemagic y consolas (manual)
 
-- [ ] **1.** Cuenta [codemagic.io](https://codemagic.io) + conectar repo `Japegomez/meal_planner`
-- [ ] **2.** Project path = `meal_planner`; config = `codemagic.yaml` desde raíz
-- [ ] **3.** Grupo `supabase`: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (Secure)
-- [ ] **4.** Grupo `sentry`: `SENTRY_DSN` (Secure)
-- [ ] **5.** Grupo `google`: `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` (Secure)
-- [ ] **6.** Generar keystore + subir a Codemagic (ref `meal_planner_keystore`)
-- [ ] **7.** SHA-1 release del keystore → Google Cloud (cliente OAuth Android)
-- [ ] **8.** Conectar Apple Developer en Codemagic (firma iOS)
-- [ ] **9.** Primer build manual **Android Release** en rama `main`
-- [ ] **10.** Primer build manual **iOS Release** en rama `main`
-- [ ] **11.** Merge `develop` → `main` para activar CD automático en push
+- [x] Cuenta [codemagic.io](https://codemagic.io) + repo `Japegomez/meal_planner` conectado
+- [x] Project path = `meal_planner`; config = `codemagic.yaml` desde raíz
+- [x] Grupo `supabase`: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (Secure)
+- [x] Grupo `sentry`: `SENTRY_DSN` (Secure)
+- [x] Grupo `google`: `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` (Secure)
+- [x] Keystore Android subido (ref `meal_planner_keystore`)
+- [x] SHA-1 release del keystore → Google Cloud (cliente OAuth Android)
+- [x] Apple Developer conectado en Codemagic (firma iOS)
+- [x] Primer build **Android Release** en rama `main` OK
+- [x] Primer build **iOS Release** en rama `main` OK
+- [x] CD automático en push a `main` activo
+
+**Opcional post-Fase-1:** protección de ramas `main` / `develop` en GitHub.
 
 ---
 
@@ -296,19 +300,21 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ## CI/CD y releases
 
+> Infraestructura de build (Fase 1) completada. Lo siguiente es **publicación en stores** (fuera del alcance de Setup).
+
 ### Android — Google Play
 
-- [ ] Configurar workflow Codemagic: push a `main` → build release (Android AAB + iOS IPA); `develop` solo CI en GitHub Actions
-- [ ] Primera subida manual del AAB a **Pruebas internas** en Google Play Console (obligatorio para el primer release)
+- [x] Workflow Codemagic: push a `main` → build release (AAB + IPA); `develop` → CI en GitHub Actions
+- [ ] Primera subida manual del AAB a **Pruebas internas** en Google Play Console
 - [ ] Configurar servicio de cuenta en Google Cloud para submit automatizado
 - [ ] App instalable vía enlace de testers internos
 - [ ] Completar ficha Play (textos, capturas, clasificación de contenido, política de privacidad)
 
 ### iOS — App Store / TestFlight
 
-- [ ] Apple Developer Program activo; App ID con Sign In with Apple + Push Notifications
-- [ ] App creada en App Store Connect
-- [ ] Primer build iOS `production` + submit a TestFlight (Codemagic)
+- [x] Apple Developer Program + firma iOS en Codemagic
+- [x] Primer build iOS release en Codemagic (`.ipa` generado)
+- [ ] App creada en App Store Connect + submit a TestFlight
 - [ ] Testing interno TestFlight: Sign in with Apple, Google OAuth, flujo completo de la app
 - [ ] Completar ficha App Store Connect y **Submit for Review**
 
@@ -332,13 +338,14 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [ ] Onboarding para nuevos usuarios (pantallas de bienvenida / tutorial)
 - [ ] Icono de app y splash screen
 - [ ] README de desarrollo con instrucciones de setup local
+- [ ] Protección de ramas `main` / `develop` en GitHub
 - [ ] Tests unitarios: escalado de ingredientes, lógica de consolidación de lista de la compra
 
 ---
 
 ## Fase 6 — Red social (Backlog)
 
-> Planificada para después de la Fase 1 completa. Los campos `is_public` en `recipes` y la columna RLS ya están preparados en el esquema.
+> Planificada para después de la Fase 1 (completada). Los campos `is_public` en `recipes` y la columna RLS ya están preparados en el esquema.
 
 ### Migraciones de base de datos
 
