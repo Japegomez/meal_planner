@@ -65,7 +65,7 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       'recipe_id': ?recipeId,
       'servings': ?servings,
       'position': ?position,
-      if (isLeftover != null) 'is_leftover': isLeftover,
+      'is_leftover': ?isLeftover,
       'notes': ?notes,
     };
   }
@@ -159,7 +159,7 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       'recipe_id': ?recipeId,
       'servings': ?servings,
       'position': ?position,
-      if (isLeftover != null) 'is_leftover': isLeftover,
+      'is_leftover': ?isLeftover,
       'notes': ?notes,
     };
   }

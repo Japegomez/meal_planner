@@ -182,7 +182,7 @@ class PlannerRepository {
 
     final recipeData = await supabase
         .from(Recipe.table_name)
-        .select('${Recipe.c_servings}')
+        .select(Recipe.c_servings)
         .eq(Recipe.c_id, recipeId)
         .single();
 
