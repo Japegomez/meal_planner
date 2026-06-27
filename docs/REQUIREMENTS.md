@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.2 — Fase 1 completada (infraestructura)
+> **Versión:** 0.4 — Fase 2 en progreso (auth, perfil y hogar completados en cliente)
 > **Fecha:** Junio 2026
-> **Estado:** Fase 1 cerrada; desarrollo activo en Fase 2
+> **Estado:** F1–F3 cerradas en UI; siguiente hito: recetario (Fase 3)
 
 ---
 
@@ -67,8 +67,10 @@ En una fase posterior se añadirá una red social para descubrir y compartir rec
 **RF-AUTH-04** El usuario puede iniciar sesión con **Google** (OAuth 2.0 vía Supabase, disponible en iOS y Android).  
 **RF-AUTH-05** El usuario puede iniciar sesión con **Apple** (*Sign in with Apple*, obligatorio en iOS cuando se ofrece cualquier otro proveedor OAuth, según las App Store Review Guidelines).  
 **RF-AUTH-06** Al autenticarse por primera vez (cualquier método) se crea automáticamente un perfil con nombre de usuario y avatar opcional.  
-**RF-AUTH-07** El usuario puede editar su nombre de usuario y avatar desde ajustes.  
+**RF-AUTH-07** El usuario puede editar su nombre de usuario y avatar desde la pantalla de perfil (`/home/profile/edit`).  
 **RF-AUTH-08** El usuario puede cerrar sesión.  
+
+> **Nota de implementación — avatares (migración `007_storage_avatars`):** bucket privado `avatars` con path `{user_id}/avatar.jpg`. La columna `profiles.avatar_url` almacena el path; la app resuelve URL firmada al cargar. RLS permite a miembros del mismo hogar leer perfiles y avatares ajenos (lista de miembros).
 
 > **Nota de implementación — Google (nativo):** Flutter usa `google_sign_in` para el flujo nativo del SDK de Google y `supabase_flutter` recibe la sesión con `signInWithIdToken`. En Google Cloud se crean **3 clientes OAuth** (Web, Android, iOS). Supabase Auth se configura con el Client ID + Secret del cliente **Web** y **Skip nonce check** activado (iOS). Android requiere SHA-1 del keystore debug/release en el cliente OAuth Android. **No** se usa `signInWithOAuth` ni deep links para Google.
 >
@@ -84,6 +86,10 @@ Un **hogar** es un espacio compartido que agrupa un planificador semanal y una l
 **RF-HH-02** El sistema genera un **código de invitación** único (alfanumérico, 6 caracteres) para cada hogar.  
 **RF-HH-03** Cualquier usuario registrado puede unirse a un hogar introduciendo el código de invitación.  
 **RF-HH-04** El administrador puede revocar el código de invitación y generar uno nuevo.  
+> **Nota de implementación — RPCs (migración `006_household_rpcs`):** `create_household(name)`, `join_household(code)` y `regenerate_invite_code(household_id)` expuestas como funciones `SECURITY DEFINER` con `GRANT` a `authenticated`. Código de invitación alfanumérico de 6 caracteres (sin caracteres ambiguos).
+>
+> **UI Flutter:** `HouseholdRepository` + `currentHouseholdProvider`; miembros vía `householdMembersByIdProvider(householdId)` (family, evita dependencias circulares en Riverpod).
+
 **RF-HH-05** El administrador puede expulsar a un miembro del hogar.  
 **RF-HH-06** Un usuario puede abandonar el hogar.  
 **RF-HH-07** Todos los miembros del hogar ven y editan el mismo planificador y la misma lista de la compra en tiempo real.  
@@ -339,14 +345,18 @@ lib/
 │
 ├── features/
 │   ├── auth/
-│   │   ├── data/              # supabase_auth_repository.dart
-│   │   ├── domain/            # auth_state.dart, user_model.dart
-│   │   └── presentation/      # login_screen, register_screen, providers
+│   │   ├── data/              # auth_repository.dart
+│   │   ├── domain/            # auth_state.dart, auth_exception.dart
+│   │   └── presentation/      # login, register, forgot_password, auth_provider
+│   │
+│   ├── profile/
+│   │   ├── data/              # profile_repository.dart
+│   │   └── presentation/      # profile_screen, edit_profile_screen, profile_provider
 │   │
 │   ├── household/
-│   │   ├── data/
-│   │   ├── domain/
-│   │   └── presentation/      # create_household, join_household, members_screen
+│   │   ├── data/              # household_repository.dart
+│   │   ├── domain/            # household_member_info.dart
+│   │   └── presentation/      # household, create, join screens + household_provider
 │   │
 │   ├── recipes/
 │   │   ├── data/              # recipes_repository.dart
@@ -380,7 +390,7 @@ lib/
 | `share_plus` | Exportar lista de la compra |
 | `intl` | Formateo de fechas (semanas) |
 | `flutter_slidable` | Swipe en ítems de lista |
-| `cached_network_image` | Caché de fotos de recetas |
+| `cached_network_image` | Caché de fotos de recetas y avatares |
 | `sentry_flutter` | Crash reporting y performance traces |
 | `firebase_core` + `firebase_analytics` | Analytics de producto (GA4) |
 | `logger` | Logs estructurados con niveles en cliente |
@@ -388,6 +398,8 @@ lib/
 | `in_app_review` | Prompt nativo de valoración en tienda |
 | `connectivity_plus` | Detección de estado de red |
 | `flutter_secure_storage` | Almacenamiento seguro de tokens (Keychain / Keystore) |
+
+> **Web:** `supabase_flutter` arrastra `passkeys_web` (WebAuthn). Incluir `web/passkeys_bundle.js` en `index.html` antes de `flutter_bootstrap.js`.
 
 ### Flujo de datos clave: añadir receta al planificador
 
@@ -435,6 +447,7 @@ supabase
 /                         → Redirect según auth
 /auth/login
 /auth/register
+/auth/forgot-password
 /home                     → Shell con bottom nav
   /home/planner           → Planificador semanal
   /home/recipes           → Lista del recetario
@@ -442,8 +455,11 @@ supabase
     /home/recipes/new     → Formulario nueva receta
     /home/recipes/:id/edit
   /home/shopping          → Lista de la compra
-  /home/settings          → Ajustes (perfil, hogar)
-    /home/settings/household
+  /home/profile           → Perfil (avatar, hogar, cerrar sesión)
+    /home/profile/edit
+    /home/profile/household
+      /home/profile/household/create
+      /home/profile/household/join
 ```
 
 ---
