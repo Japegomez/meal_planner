@@ -98,6 +98,9 @@ workflows:
       - name: Flutter unit tests
         script: |
           flutter test
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
       - name: Build iOS IPA
         script: |
           flutter build ipa --release \
