@@ -17,12 +17,17 @@ class AuthRepository {
     if (!Env.hasGoogleSignIn) return null;
     return GoogleSignIn(
       serverClientId: Env.googleWebClientId,
-      clientId: !kIsWeb &&
-              defaultTargetPlatform == TargetPlatform.iOS &&
-              Env.googleIosClientId.isNotEmpty
-          ? Env.googleIosClientId
-          : null,
+      clientId: _googleClientId,
     );
+  }
+
+  String? get _googleClientId {
+    if (kIsWeb) return Env.googleWebClientId;
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        Env.googleIosClientId.isNotEmpty) {
+      return Env.googleIosClientId;
+    }
+    return null;
   }
 
   Future<AuthResponse> signInWithEmail({
@@ -104,8 +109,20 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _googleSignIn?.signOut();
+    if (_signedInWithGoogle) {
+      try {
+        await _googleSignIn?.signOut();
+      } catch (_) {
+        // Best-effort; Supabase sign-out still runs below.
+      }
+    }
     await supabase.auth.signOut();
+  }
+
+  bool get _signedInWithGoogle {
+    final identities = supabase.auth.currentUser?.identities;
+    if (identities == null) return false;
+    return identities.any((identity) => identity.provider == 'google');
   }
 
   Future<void> deleteAccount() async {
