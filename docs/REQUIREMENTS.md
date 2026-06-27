@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.5 — Fase 3 completada (recetario F4–F5 en cliente)
+> **Versión:** 0.6 — Fase 4 completada (planificador F6–F8 en cliente)
 > **Fecha:** Junio 2026
-> **Estado:** F1–F3 (auth, perfil, hogar) y F4–F5 (recetario) en cliente; siguiente hito: planificador semanal (Fase 4)
+> **Estado:** F1–F4 (auth, perfil, hogar, recetario, planificador) en cliente; siguiente hito: lista de la compra (Fase 5)
 
 ---
 
@@ -144,17 +144,21 @@ El **recetario** es la colección personal de recetas de cada usuario. Las recet
 
 ### 3.4 Planificador semanal
 
-El planificador muestra una semana con 7 días × 3 slots: **Desayuno**, **Comida** y **Cena**.
+El planificador muestra una semana con 7 días × 3 slots: **Desayuno**, **Comida** y **Cena**. En móvil la UI es una **lista vertical por día** con un panel lateral deslizable del recetario (buscador + drag-and-drop).
 
 **RF-PLAN-01** La semana comienza en lunes.  
 **RF-PLAN-02** El usuario puede navegar hacia semanas pasadas y futuras con flechas de paginación.  
-**RF-PLAN-03** Cada slot puede contener **una o varias recetas** (p. ej. desayuno con tostadas + zumo).  
-**RF-PLAN-04** Para asignar una receta a un slot, el usuario la selecciona del recetario mediante un buscador/lista.  
+**RF-PLAN-03** Cada slot puede contener **una o varias comidas** (recetas del recetario o entradas de texto libre).  
+**RF-PLAN-04** Para asignar una receta a un slot, el usuario la selecciona del recetario (modal con buscador) o la arrastra desde el panel lateral.  
 **RF-PLAN-05** Al asignar una receta, el usuario puede ajustar el **número de raciones** para esa ocasión (por defecto las raciones de la receta). Los ingredientes de la lista de la compra se escalan proporcionalmente.  
-**RF-PLAN-06** El usuario puede eliminar una receta concreta de un slot sin afectar al resto de recetas del mismo slot.  
-**RF-PLAN-07** Al eliminar una receta del planificador, sus ingredientes (solo los generados por esa asignación) se restan automáticamente de la lista de la compra.  
-**RF-PLAN-08** Desde el planificador, el usuario puede pulsar la receta de un slot para ver su detalle.  
+**RF-PLAN-06** El usuario puede eliminar una comida concreta de un slot sin afectar al resto del mismo slot.  
+**RF-PLAN-07** Al eliminar una receta del planificador, sus ingredientes generados por esa asignación se eliminan de la lista de la compra (por `plan_slot_id`).  
+**RF-PLAN-08** Desde el planificador, el usuario puede pulsar la receta de un slot para ver su detalle. *(Pendiente en cliente.)*  
 **RF-PLAN-09** En modo hogar, todos los miembros ven y modifican el mismo planificador en tiempo real (Supabase Realtime).  
+**RF-PLAN-10** Al asignar una receta, el usuario puede marcar **Son sobras**: los ingredientes **no** se añaden a la lista de la compra.  
+**RF-PLAN-11** El usuario puede añadir una **entrada de texto libre** a un slot (sin receta asociada): se guarda en `plan_slots.notes`, no genera ítems en la lista de la compra y se distingue visualmente de recetas y sobras.
+
+> **Nota de implementación — slots (migración `009_plan_slots_extras`):** `plan_slots.is_leftover boolean DEFAULT false`; `plan_slots.notes text` (nullable). Chips en UI: receta normal (`primaryContainer`), sobras (`tertiaryContainer` + icono), texto libre (naranja suave + icono).
 
 ---
 
@@ -279,7 +283,9 @@ CREATE TABLE plan_slots (
   meal_type    text NOT NULL,  -- 'breakfast' | 'lunch' | 'dinner'
   recipe_id    uuid REFERENCES recipes(id) ON DELETE SET NULL,
   servings     int NOT NULL DEFAULT 1,  -- raciones ajustadas al planificar
-  position     int NOT NULL DEFAULT 0   -- orden de las recetas dentro del slot
+  position     int NOT NULL DEFAULT 0,  -- orden de las recetas dentro del slot
+  is_leftover  boolean NOT NULL DEFAULT false,  -- migración 009: omite sync con lista de la compra
+  notes        text                            -- migración 009: entrada de texto libre (sin recipe_id)
   -- Sin UNIQUE(plan_id, day_of_week, meal_type): un slot admite múltiples recetas
 );
 
@@ -365,8 +371,8 @@ lib/
 │   │
 │   ├── planner/
 │   │   ├── data/              # planner_repository.dart
-│   │   ├── domain/            # weekly_plan_model.dart, plan_slot_model.dart
-│   │   └── presentation/      # planner_screen, slot_picker, week_navigation
+│   │   ├── domain/            # slot_item.dart, planner_constants.dart
+│   │   └── presentation/      # planner_screen, recipe_picker, meal_slot, recipe_palette, servings_dialog
 │   │
 │   └── shopping/
 │       ├── data/              # shopping_repository.dart

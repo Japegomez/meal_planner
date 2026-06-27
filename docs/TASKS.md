@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 27/06/2026 — **Fase 3 completada** (F4–F5 recetario en cliente; siguiente: Fase 4 planificador)
+> Actualizado: 27/06/2026 — **Fase 4 completada** (planificador F6–F8 en cliente; siguiente: Fase 5 lista de la compra)
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -12,7 +12,7 @@
 | Fase 1 — Setup          | Completada | Flutter, Supabase, OAuth, CI/CD Codemagic, builds Android + iOS verificados  |
 | Fase 2 — Auth y perfiles| Completada | F1 auth, F2 perfil y F3 hogar en UI; modo individual en planificador/lista → Fases 4–5 |
 | Fase 3 — Recetario      | Completada | CRUD recetas, ingredientes, pasos, fotos, nutrición (F4–F5)                  |
-| Fase 4 — Planificador   | Pendiente | Vista semanal, slots, escalado de raciones, Realtime                         |
+| Fase 4 — Planificador   | Completada | Vista semanal vertical, slots, drag-and-drop, sobras, texto libre, Realtime |
 | Fase 5 — Lista compra   | Pendiente | Generación automática, agrupación, exportación WhatsApp                      |
 | Fase 6 — Red social     | Backlog  | Recetas públicas, descubrimiento, valoraciones, seguimiento                  |
 
@@ -266,30 +266,37 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### Migraciones de base de datos
 
-- [ ] RPC o función `get_or_create_weekly_plan(week_start date)` → devuelve el plan de esa semana (crea si no existe)
+- [x] RPC `get_or_create_weekly_plan(week_start date)` → devuelve el plan de esa semana (crea si no existe)
+  - Migración `008_planner_rpc.sql`; el cliente implementa upsert equivalente en `PlannerRepository.getOrCreateWeeklyPlan`
+- [x] Migración `009_plan_slots_extras.sql`: columnas `is_leftover` (boolean) y `notes` (text) en `plan_slots`
+  - Aplicada en remoto (27/06/2026)
 
 ### F6 - Vista semanal
 
-- [ ] Pantalla del planificador: grid 7 columnas (lunes–domingo) × 3 filas (desayuno, comida, cena)
-- [ ] Navegación entre semanas (flechas anterior / siguiente; etiqueta con rango de fechas)
-- [ ] Indicador visual de semana actual
-- [ ] Slot vacío: botón `+` para añadir receta
-- [ ] Slot con receta(s): muestra nombre(s) de las recetas asignadas
-- [ ] Slot con varias recetas: scroll horizontal o lista expandible dentro del slot
+- [x] Pantalla del planificador: **layout vertical móvil** (lista de días con desayuno/comida/cena apilados; sustituye el grid 7×3 del diseño inicial)
+- [x] Panel lateral deslizable con recetario (buscador + tarjetas arrastrables)
+- [x] Drag-and-drop de recetas desde el panel al planificador; autoscroll al acercarse a los bordes
+- [x] Navegación entre semanas (flechas anterior / siguiente; etiqueta con rango de fechas)
+- [x] Indicador visual de semana actual
+- [x] Slot vacío: pulsar o soltar receta para añadir
+- [x] Slot con receta(s): muestra nombre(s) con chips de color según tipo (receta / sobras / texto libre)
+- [x] Slot con varias recetas: lista vertical con botón «Añadir»
 - [ ] Desde el planificador: pulsar una receta de un slot → navegar a detalle de receta
 
 ### F7 - Gestión de slots
 
-- [ ] Modal/pantalla de selección de receta para un slot (lista del recetario con buscador)
-- [ ] Al seleccionar receta: input para ajustar el número de raciones (por defecto las de la receta)
-- [ ] Confirmar asignación: inserta fila en `plan_slots` y actualiza la lista de la compra
-- [ ] Eliminar receta concreta de un slot (swipe o botón ✕; no afecta a otras recetas del mismo slot)
-  - Al eliminar: restar ingredientes generados por esa asignación de la lista de la compra
+- [x] Modal/pantalla de selección de receta para un slot (lista del recetario con buscador)
+- [x] Botón «Añadir texto libre» para entradas sin receta (nombre + raciones; no va a lista de la compra)
+- [x] Al seleccionar receta (tap o drag): diálogo de raciones con checkbox **Son sobras** (omite ingredientes en lista de la compra)
+- [x] Confirmar asignación: inserta fila en `plan_slots` y sincroniza ingredientes en `shopping_items` (si hay receta y no es sobra)
+- [x] Actualización optimista de la UI (sin recarga completa al añadir/quitar)
+- [x] Eliminar comida concreta de un slot (botón ✕ + confirmación; no afecta a otras del mismo slot)
+  - Al eliminar: borra `shopping_items` vinculados por `plan_slot_id`
 
 ### F8 - Realtime (hogar)
 
-- [ ] Suscripción Supabase Realtime a cambios en `plan_slots` del plan activo del hogar
-- [ ] Refrescar UI del planificador al recibir cambios de otros miembros del hogar
+- [x] Suscripción Supabase Realtime a cambios en `plan_slots` del plan activo
+- [x] Refrescar UI del planificador al recibir cambios de otros miembros del hogar
 
 ---
 
@@ -308,10 +315,11 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### F10 - Automatización desde el planificador
 
-- [ ] Al añadir receta al planificador: insertar sus ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
+- [x] Al añadir receta al planificador: insertar sus ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
+  - Omitido si `is_leftover = true` o si el slot es texto libre (`recipe_id` null)
 - [ ] Consolidación: si ya existe un ítem con el mismo nombre y unidad, sumar la cantidad en lugar de duplicar
-- [ ] Al eliminar receta del planificador: restar la cantidad aportada por esa asignación (por `plan_slot_id`)
-  - Si la cantidad resultante es ≤ 0, eliminar el ítem
+- [x] Al eliminar receta del planificador: borrar ítems por `plan_slot_id`
+  - Pendiente: restar cantidad en lugar de borrar cuando haya consolidación
 
 ### F11 - Exportación
 
