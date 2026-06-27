@@ -2,9 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meal_planner/features/auth/domain/auth_state.dart';
 import 'package:meal_planner/features/auth/presentation/auth_provider.dart';
+import 'package:meal_planner/features/auth/presentation/forgot_password_screen.dart';
 import 'package:meal_planner/features/auth/presentation/login_screen.dart';
+import 'package:meal_planner/features/auth/presentation/register_screen.dart';
 import 'package:meal_planner/features/planner/presentation/planner_screen.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_list_screen.dart';
+import 'package:meal_planner/features/settings/presentation/settings_screen.dart';
 import 'package:meal_planner/features/shopping/presentation/shopping_list_screen.dart';
 import 'package:meal_planner/router/home_shell.dart';
 
@@ -37,6 +40,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/auth/login',
         builder: (_, _) => const LoginScreen(),
       ),
+      GoRoute(
+        path: '/auth/register',
+        builder: (_, _) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/auth/forgot-password',
+        builder: (_, _) => const ForgotPasswordScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) =>
             HomeShell(navigationShell: navigationShell),
@@ -62,6 +73,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/home/shopping',
                 builder: (_, _) => const ShoppingListScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home/settings',
+                builder: (_, _) => const SettingsScreen(),
               ),
             ],
           ),
