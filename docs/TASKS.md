@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 26/06/2026 — **Fase 1 completada** ✅
+> Actualizado: 27/06/2026 — **Fase 2 en progreso** (F1–F3 completadas en cliente; siguiente: Fase 3 recetario)
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -10,7 +10,7 @@
 | Fase                    | Estado     | Descripción                                                                   |
 | ----------------------- | ---------- | ----------------------------------------------------------------------------- |
 | Fase 1 — Setup          | Completada | Flutter, Supabase, OAuth, CI/CD Codemagic, builds Android + iOS verificados  |
-| Fase 2 — Auth y perfiles| Pendiente  | Email/contraseña, OAuth Google/Apple, hogar compartido                       |
+| Fase 2 — Auth y perfiles| En progreso | F1 auth, F2 perfil y F3 hogar completados en UI; lógica individual en planificador/lista → Fases 4–5 |
 | Fase 3 — Recetario      | Pendiente | CRUD recetas, ingredientes, pasos, fotos, nutrición                          |
 | Fase 4 — Planificador   | Pendiente | Vista semanal, slots, escalado de raciones, Realtime                         |
 | Fase 5 — Lista compra   | Pendiente | Generación automática, agrupación, exportación WhatsApp                      |
@@ -62,7 +62,13 @@ flutter devices
 flutter run -d emulator-5554 --dart-define-from-file=dart_defines.json
 ```
 
-Alternativa: flutter run -d chrome --dart-define-from-file=dart_defines.json
+Alternativa web (requiere **hot restart** tras cambios en providers o `index.html`):
+
+```powershell
+flutter run -d web-server --web-port=8080 --dart-define-from-file=dart_defines.json
+```
+
+Web: `web/index.html` incluye `passkeys_bundle.js` (dependencia transitiva de `supabase_flutter` / WebAuthn).
 
 Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core/config/env.dart` en compile time.
 
@@ -151,50 +157,65 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 ### Migraciones de base de datos
 
 - [x] Aplicar migraciones `001`–`005` en Supabase remoto y verificar RLS
-- [ ] Crear RPC `create_household(name text)` → devuelve el hogar con `invite_code` generado
-- [ ] Crear RPC `join_household(code text)` → valida código e inserta en `household_members`
-- [ ] Crear RPC `regenerate_invite_code(household_id uuid)` → solo admin del hogar
+- [x] Crear RPC `create_household(name text)` → devuelve el hogar con `invite_code` generado
+  - Migración `006_household_rpcs.sql`; aplicada en remoto (27/06/2026)
+- [x] Crear RPC `join_household(code text)` → valida código e inserta en `household_members`
+- [x] Crear RPC `regenerate_invite_code(household_id uuid)` → solo admin del hogar
+- [x] Migración `007_storage_avatars.sql`: bucket `avatars` + RLS perfiles/avatares entre miembros del hogar
+  - Aplicada en remoto (27/06/2026)
 
 ### F1 - Autenticación
 
-- [ ] Instalar y configurar cliente Supabase en Flutter (`lib/core/supabase/supabase_client.dart`)
-- [ ] Pantalla de login (email + contraseña)
-- [ ] Pantalla de registro (email + contraseña + nombre de usuario)
-- [ ] Pantalla de recuperación de contraseña (envío de email)
-- [ ] Login con Google nativo (`google_sign_in` + `signInWithIdToken` vía Supabase)
+- [x] Instalar y configurar cliente Supabase en Flutter (`lib/core/supabase/supabase_client.dart`)
+  - PKCE + `SecureLocalStorage` / `SecureGotrueAsyncStorage` (no SharedPreferences)
+- [x] Pantalla de login (email + contraseña)
+- [x] Pantalla de registro (email + contraseña + nombre de usuario)
+  - `register_screen.dart`; aviso de confirmación por email
+- [x] Pantalla de recuperación de contraseña (envío de email)
+  - `forgot_password_screen.dart`
+- [x] Login con Google nativo (`google_sign_in` + `signInWithIdToken` vía Supabase)
   - Google Cloud: 3 clientes OAuth (Web, Android con SHA-1, iOS)
   - Supabase: Client ID + Secret del cliente Web; **Skip nonce check** activo
   - Android: `serverClientId` = Web Client ID
   - iOS: `clientId` = iOS Client ID; URL scheme invertido en `Info.plist`
   - Variables: `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` en `--dart-define` / Codemagic
-- [ ] Login con Apple (Sign in with Apple; paquete `sign_in_with_apple`)
+- [x] Login con Apple (Sign in with Apple; paquete `sign_in_with_apple`)
   - Configurar entitlement `com.apple.developer.applesignin` en Xcode
   - Apple Developer: App ID con Sign In with Apple activo
   - Supabase: proveedor Apple con Client ID `com.tuapp.mealplanner`
-- [ ] Persistencia de sesión entre cierres de la app (`supabase_flutter` + `SharedPreferences`)
-- [ ] Redirección automática: autenticado → `/home/planner`, no autenticado → `/auth/login`
-  - Guard en `AppRouter` usando `AuthNotifier` (Riverpod)
-- [ ] Creación automática de perfil al registrarse por primera vez (trigger o lógica en cliente)
-- [ ] Cerrar sesión desde ajustes (con confirmación modal)
+- [x] Persistencia de sesión entre cierres de la app (`supabase_flutter` + `flutter_secure_storage`)
+- [x] Redirección automática: autenticado → `/home/planner`, no autenticado → `/auth/login`
+  - Guard en `AppRouter` con `authStateProvider` (Riverpod)
+- [x] Creación automática de perfil al registrarse por primera vez (trigger o lógica en cliente)
+  - Trigger `handle_new_user` en `001_profiles.sql`
+- [x] Cerrar sesión desde perfil (con confirmación modal)
+  - `profile_screen.dart` en tab Perfil (`/home/profile`)
 
 ### F2 - Perfil de usuario
 
-- [ ] Pantalla de perfil (nombre, avatar, hogar actual)
-- [ ] Pantalla de edición de perfil (nombre de usuario, avatar)
-- [ ] Subida de avatar a Supabase Storage (bucket `avatars`; compresión antes de subir)
+- [x] Pantalla de perfil (nombre, avatar, hogar actual)
+  - `profile_screen.dart`; tab Perfil `/home/profile`
+- [x] Pantalla de edición de perfil (nombre de usuario, avatar)
+  - `edit_profile_screen.dart` → `/home/profile/edit`
+- [x] Subida de avatar a Supabase Storage (bucket `avatars`; compresión antes de subir)
+  - `ProfileRepository.uploadAvatar`; path `{userId}/avatar.jpg`; URL firmada al leer
   - Paquete `image_picker` para seleccionar foto de galería o cámara
 
 ### F3 - Hogar compartido
 
-- [ ] Pantalla de gestión del hogar (crear o unirse)
-- [ ] Crear hogar: formulario con nombre → llamada a RPC `create_household`
-- [ ] Mostrar código de invitación del hogar (copiable al portapapeles)
-- [ ] Unirse a hogar: input de código de 6 caracteres → RPC `join_household`
-- [ ] Regenerar código de invitación (solo admin del hogar)
-- [ ] Lista de miembros del hogar con rol (admin / miembro)
-- [ ] Expulsar miembro del hogar (solo admin, con confirmación modal)
-- [ ] Abandonar hogar (con confirmación modal)
-- [ ] Lógica de modo individual: si el usuario no tiene hogar, usa su propio planificador y lista
+- [x] Pantalla de gestión del hogar (crear o unirse)
+  - `household_screen.dart` → `/home/profile/household`
+- [x] Crear hogar: formulario con nombre → llamada a RPC `create_household`
+  - `create_household_screen.dart`
+- [x] Mostrar código de invitación del hogar (copiable al portapapeles)
+- [x] Unirse a hogar: input de código de 6 caracteres → RPC `join_household`
+  - `join_household_screen.dart`
+- [x] Regenerar código de invitación (solo admin del hogar)
+- [x] Lista de miembros del hogar con rol (admin / miembro)
+- [x] Expulsar miembro del hogar (solo admin, con confirmación modal)
+- [x] Abandonar hogar (con confirmación modal)
+- [] Lógica de modo individual: si el usuario no tiene hogar, usa su propio planificador y lista
+  - UI informativa en perfil y pantalla de hogar; datos `weekly_plans` / `shopping_lists` por `user_id` → Fases 4–5
 
 ---
 

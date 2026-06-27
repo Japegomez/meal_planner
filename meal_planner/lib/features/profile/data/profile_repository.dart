@@ -1,0 +1,67 @@
+import 'package:image_picker/image_picker.dart';
+import 'package:meal_planner/core/supabase/models/profile.dart';
+import 'package:meal_planner/core/supabase/supabase_client.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class ProfileRepository {
+  static const _avatarBucket = 'avatars';
+  static const _signedUrlExpirySeconds = 3600;
+
+  Future<Profile?> fetchProfile(String userId) async {
+    final data = await supabase
+        .from(Profile.table_name)
+        .select()
+        .eq(Profile.c_id, userId)
+        .maybeSingle();
+
+    if (data == null) return null;
+
+    final profile = Profile.fromJson(data);
+    final avatarUrl = await _resolveAvatarUrl(profile.avatarUrl);
+    return profile.copyWith(avatarUrl: avatarUrl);
+  }
+
+  Future<void> updateProfile({
+    required String userId,
+    String? username,
+    String? avatarPath,
+  }) async {
+    final updates = <String, dynamic>{};
+    if (username != null) updates[Profile.c_username] = username;
+    if (avatarPath != null) updates[Profile.c_avatarUrl] = avatarPath;
+    if (updates.isEmpty) return;
+
+    await supabase
+        .from(Profile.table_name)
+        .update(updates)
+        .eq(Profile.c_id, userId);
+  }
+
+  Future<String> uploadAvatar(String userId, XFile file) async {
+    final path = '$userId/avatar.jpg';
+    final bytes = await file.readAsBytes();
+
+    await supabase.storage.from(_avatarBucket).uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(
+            upsert: true,
+            contentType: 'image/jpeg',
+          ),
+        );
+
+    return path;
+  }
+
+  Future<String?> resolveAvatarUrl(String? storedValue) =>
+      _resolveAvatarUrl(storedValue);
+
+  Future<String?> _resolveAvatarUrl(String? storedValue) async {
+    if (storedValue == null || storedValue.isEmpty) return null;
+    if (storedValue.startsWith('http')) return storedValue;
+
+    return supabase.storage
+        .from(_avatarBucket)
+        .createSignedUrl(storedValue, _signedUrlExpirySeconds);
+  }
+}

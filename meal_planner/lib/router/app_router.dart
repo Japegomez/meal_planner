@@ -5,9 +5,13 @@ import 'package:meal_planner/features/auth/presentation/auth_provider.dart';
 import 'package:meal_planner/features/auth/presentation/forgot_password_screen.dart';
 import 'package:meal_planner/features/auth/presentation/login_screen.dart';
 import 'package:meal_planner/features/auth/presentation/register_screen.dart';
+import 'package:meal_planner/features/household/presentation/create_household_screen.dart';
+import 'package:meal_planner/features/household/presentation/household_screen.dart';
+import 'package:meal_planner/features/household/presentation/join_household_screen.dart';
 import 'package:meal_planner/features/planner/presentation/planner_screen.dart';
+import 'package:meal_planner/features/profile/presentation/edit_profile_screen.dart';
+import 'package:meal_planner/features/profile/presentation/profile_screen.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_list_screen.dart';
-import 'package:meal_planner/features/settings/presentation/settings_screen.dart';
 import 'package:meal_planner/features/shopping/presentation/shopping_list_screen.dart';
 import 'package:meal_planner/router/home_shell.dart';
 
@@ -79,8 +83,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/home/settings',
-                builder: (_, _) => const SettingsScreen(),
+                path: '/home/profile',
+                builder: (_, _) => const ProfileScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (_, _) => const EditProfileScreen(),
+                  ),
+                  GoRoute(
+                    path: 'household',
+                    builder: (_, _) => const HouseholdScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'create',
+                        builder: (_, _) => const CreateHouseholdScreen(),
+                      ),
+                      GoRoute(
+                        path: 'join',
+                        builder: (_, _) => const JoinHouseholdScreen(),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
