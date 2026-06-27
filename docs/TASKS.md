@@ -348,8 +348,9 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 ### Android — Google Play
 
 - [x] Workflow Codemagic: push a `main` → build release (AAB + IPA); `develop` → CI en GitHub Actions
-- [ ] Primera subida manual del AAB a **Pruebas internas** en Google Play Console
-- [ ] Configurar servicio de cuenta en Google Cloud para submit automatizado
+- [x] `codemagic.yaml`: publicación automática a track **internal** (`publishing.google_play`, draft)
+- [X] Grupo env `google_play` + service account JSON en Codemagic
+- [x] Primera subida manual del AAB a **Pruebas internas** en Google Play Console (obligatorio la 1.ª vez)
 - [ ] App instalable vía enlace de testers internos
 - [ ] Completar ficha Play (textos, capturas, clasificación de contenido, política de privacidad)
 
@@ -357,7 +358,9 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 - [x] Apple Developer Program + firma iOS en Codemagic
 - [x] Primer build iOS release en Codemagic (`.ipa` generado)
-- [ ] App creada en App Store Connect + submit a TestFlight
+- [x] `codemagic.yaml`: publicación automática a **TestFlight** (`publishing.app_store_connect`)
+- [X] Integración App Store Connect API en Codemagic (nombre `meal_planner`) + `APP_STORE_APPLE_ID` en yaml
+- [ ] App creada en App Store Connect
 - [ ] Testing interno TestFlight: Sign in with Apple, Google OAuth, flujo completo de la app
 - [ ] Completar ficha App Store Connect y **Submit for Review**
 
