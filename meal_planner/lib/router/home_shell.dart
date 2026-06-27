@@ -36,6 +36,11 @@ class HomeShell extends StatelessWidget {
             selectedIcon: Icon(Icons.shopping_cart),
             label: 'Compra',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
         ],
       ),
     );

@@ -184,6 +184,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         label: const Text('Continuar con Apple'),
                       ),
                     ],
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () => context.go('/auth/forgot-password'),
+                        child: const Text('¿Olvidaste tu contraseña?'),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed:
+                          _isLoading ? null : () => context.go('/auth/register'),
+                      child: const Text('¿No tienes cuenta? Regístrate'),
+                    ),
                   ],
                 ),
               ),
