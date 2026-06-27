@@ -375,9 +375,13 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ## Backlog general (sin fase asignada)
 
-- [ ] Pantalla de Términos y Condiciones (texto estático)
-- [ ] Pantalla de Política de Privacidad (texto estático)
-- [ ] Flujo de eliminación de cuenta (derecho de supresión RGPD)
+- [x] Pantalla de Términos y Condiciones (texto estático)
+  - GitHub Pages: `docs/legal/terminos.html`; en app: WebView `/legal/terms`
+- [x] Pantalla de Política de Privacidad (texto estático)
+  - GitHub Pages: `docs/legal/privacidad.html`; en app: WebView `/legal/privacy`
+- [x] Flujo de eliminación de cuenta (derecho de supresión RGPD)
+  - RPC `delete_user_account` (migración `010`); pantalla Perfil → Eliminar cuenta
+  - Pendiente: aplicar migración `010` en Supabase remoto
 - [ ] Onboarding para nuevos usuarios (pantallas de bienvenida / tutorial)
 - [ ] Icono de app y splash screen
 - [ ] README de desarrollo con instrucciones de setup local
