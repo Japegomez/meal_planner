@@ -42,31 +42,20 @@ class _ServingsDialog extends StatefulWidget {
 }
 
 class _ServingsDialogState extends State<_ServingsDialog> {
-  late final TextEditingController _controller;
+  late int _servings;
   bool _isLeftover = false;
 
   @override
   void initState() {
     super.initState();
-    _controller =
-        TextEditingController(text: widget.defaultServings.toString());
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+    _servings = widget.defaultServings > 0 ? widget.defaultServings : 1;
   }
 
   void _confirm() {
-    final value = int.tryParse(_controller.text.trim());
-    if (value == null || value <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Introduce un número válido de raciones')),
-      );
-      return;
-    }
-    Navigator.pop(context, ServingsResult(servings: value, isLeftover: _isLeftover));
+    Navigator.pop(
+      context,
+      ServingsResult(servings: _servings, isLeftover: _isLeftover),
+    );
   }
 
   @override
@@ -76,14 +65,14 @@ class _ServingsDialogState extends State<_ServingsDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
-            controller: _controller,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Número de raciones',
-              border: OutlineInputBorder(),
-            ),
-            onSubmitted: (_) => _confirm(),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Número de raciones'),
+          ),
+          const SizedBox(height: 8),
+          _ServingsStepper(
+            value: _servings,
+            onChanged: (value) => setState(() => _servings = value),
           ),
           const SizedBox(height: 12),
           _LeftoverCheckbox(
@@ -117,12 +106,11 @@ class _AddTextDialog extends StatefulWidget {
 
 class _AddTextDialogState extends State<_AddTextDialog> {
   final _notesController = TextEditingController();
-  final _servingsController = TextEditingController(text: '1');
+  int _servings = 1;
 
   @override
   void dispose() {
     _notesController.dispose();
-    _servingsController.dispose();
     super.dispose();
   }
 
@@ -134,10 +122,9 @@ class _AddTextDialogState extends State<_AddTextDialog> {
       );
       return;
     }
-    final servings = int.tryParse(_servingsController.text.trim()) ?? 1;
     Navigator.pop(context, (
       notes: notes,
-      servings: servings > 0 ? servings : 1,
+      servings: _servings,
     ));
   }
 
@@ -158,13 +145,14 @@ class _AddTextDialogState extends State<_AddTextDialog> {
             onSubmitted: (_) => _confirm(),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _servingsController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Raciones',
-              border: OutlineInputBorder(),
-            ),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Raciones'),
+          ),
+          const SizedBox(height: 8),
+          _ServingsStepper(
+            value: _servings,
+            onChanged: (value) => setState(() => _servings = value),
           ),
         ],
       ),
@@ -176,6 +164,45 @@ class _AddTextDialogState extends State<_AddTextDialog> {
         FilledButton(
           onPressed: _confirm,
           child: const Text('Añadir'),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Servings stepper ────────────────────────────────────────────────────────
+
+class _ServingsStepper extends StatelessWidget {
+  const _ServingsStepper({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final int value;
+  final ValueChanged<int> onChanged;
+  static const _min = 1;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton.filledTonal(
+          onPressed: value > _min ? () => onChanged(value - 1) : null,
+          icon: const Icon(Icons.remove),
+          tooltip: 'Menos raciones',
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            '$value',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+        ),
+        IconButton.filledTonal(
+          onPressed: () => onChanged(value + 1),
+          icon: const Icon(Icons.add),
+          tooltip: 'Más raciones',
         ),
       ],
     );

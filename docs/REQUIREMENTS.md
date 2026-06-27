@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.6 — Fase 4 completada (planificador F6–F8 en cliente)
+> **Versión:** 0.7 — Fase 5 completada (lista de la compra F9–F12 en cliente)
 > **Fecha:** Junio 2026
-> **Estado:** F1–F4 (auth, perfil, hogar, recetario, planificador) en cliente; siguiente hito: lista de la compra (Fase 5)
+> **Estado:** F1–F5 (auth, perfil, hogar, recetario, planificador, lista de la compra) en cliente; siguiente hito: publicación en stores y Fase 6 (red social)
 
 ---
 
@@ -150,7 +150,7 @@ El planificador muestra una semana con 7 días × 3 slots: **Desayuno**, **Comid
 **RF-PLAN-02** El usuario puede navegar hacia semanas pasadas y futuras con flechas de paginación.  
 **RF-PLAN-03** Cada slot puede contener **una o varias comidas** (recetas del recetario o entradas de texto libre).  
 **RF-PLAN-04** Para asignar una receta a un slot, el usuario la selecciona del recetario (modal con buscador) o la arrastra desde el panel lateral.  
-**RF-PLAN-05** Al asignar una receta, el usuario puede ajustar el **número de raciones** para esa ocasión (por defecto las raciones de la receta). Los ingredientes de la lista de la compra se escalan proporcionalmente.  
+**RF-PLAN-05** Al asignar una receta, el usuario puede ajustar el **número de raciones** para esa ocasión (por defecto las raciones de la receta) mediante un stepper **− / número / +** en el diálogo de confirmación. Los ingredientes de la lista de la compra se escalan proporcionalmente.  
 **RF-PLAN-06** El usuario puede eliminar una comida concreta de un slot sin afectar al resto del mismo slot.  
 **RF-PLAN-07** Al eliminar una receta del planificador, sus ingredientes generados por esa asignación se eliminan de la lista de la compra (por `plan_slot_id`).  
 **RF-PLAN-08** Desde el planificador, el usuario puede pulsar la receta de un slot para ver su detalle. *(Pendiente en cliente.)*  
@@ -176,7 +176,9 @@ La lista de la compra está asociada al hogar (o al usuario individual) y **no e
 **RF-SHOP-08** El usuario puede eliminar un ítem individual de la lista.  
 **RF-SHOP-09** El usuario puede **limpiar toda la lista** con un botón de confirmación.  
 **RF-SHOP-10** El usuario puede **exportar la lista** como texto plano y compartirla por WhatsApp u otras apps del sistema (usando el `share_plus` de Flutter).  
-**RF-SHOP-11** En modo hogar, todos los miembros ven la misma lista en tiempo real y pueden marcar/desmarcar ítems.  
+**RF-SHOP-11** En modo hogar, todos los miembros ven la misma lista en tiempo real y pueden marcar/desmarcar ítems.
+
+> **Nota de implementación — lista de la compra:** `ShoppingRepository` + `ShoppingItemsNotifier` (`shopping_provider.dart`). Modelos Supadart en `core/supabase/models/`. Realtime: canal `shopping_items:{listId}` filtrado por `shopping_list_id`. Consolidación al añadir desde planificador en `PlannerRepository._syncShoppingListAdd` (nombre case-insensitive + misma unidad). Pendiente: restar cantidad al eliminar slot cuando el ítem esté consolidado.  
 
 ---
 
@@ -376,8 +378,7 @@ lib/
 │   │
 │   └── shopping/
 │       ├── data/              # shopping_repository.dart
-│       ├── domain/            # shopping_item_model.dart
-│       └── presentation/      # shopping_list_screen, add_item_sheet
+│       └── presentation/      # shopping_list_screen, shopping_provider, add_edit_item_sheet, shopping_item_tile
 │
 └── router/
     └── app_router.dart        # go_router: rutas y guards de auth
@@ -417,8 +418,8 @@ PlannerNotifier.addRecipeToSlot(slotId, recipeId, servings)
         │
         ├─► PlannerRepository.upsertSlot(...)        → Supabase: plan_slots
         │
-        └─► ShoppingRepository.addFromSlot(...)      → Supabase: shopping_items
-              (escala ingredientes × servings / recipe.servings)
+        └─► PlannerRepository._syncShoppingListAdd(...)  → Supabase: shopping_items
+              (escala ingredientes × servings / recipe.servings; consolida por nombre+unidad)
 ```
 
 ### Realtime (hogar compartido)
@@ -438,10 +439,16 @@ supabase
   )
   .subscribe();
 
-// En ShoppingNotifier
+// En ShoppingItemsNotifier
 supabase
-  .channel('shopping:${householdId}')
-  .onPostgresChanges(...)
+  .channel('shopping_items:${listId}')
+  .onPostgresChanges(
+    event: PostgresChangeEvent.all,
+    schema: 'public',
+    table: 'shopping_items',
+    filter: PostgresChangeFilter(type: FilterType.eq, column: 'shopping_list_id', value: listId),
+    callback: (payload) => _reloadFromServer(),
+  )
   .subscribe();
 ```
 

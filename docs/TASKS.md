@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 27/06/2026 — **Fase 4 completada** (planificador F6–F8 en cliente; siguiente: Fase 5 lista de la compra)
+> Actualizado: 27/06/2026 — **Fase 5 completada** (lista de la compra F9–F12 en cliente; siguiente: publicación en stores / Fase 6 red social)
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -10,10 +10,10 @@
 | Fase                    | Estado     | Descripción                                                                   |
 | ----------------------- | ---------- | ----------------------------------------------------------------------------- |
 | Fase 1 — Setup          | Completada | Flutter, Supabase, OAuth, CI/CD Codemagic, builds Android + iOS verificados  |
-| Fase 2 — Auth y perfiles| Completada | F1 auth, F2 perfil y F3 hogar en UI; modo individual en planificador/lista → Fases 4–5 |
+| Fase 2 — Auth y perfiles| Completada | F1 auth, F2 perfil y F3 hogar en UI; modo individual en planificador y lista |
 | Fase 3 — Recetario      | Completada | CRUD recetas, ingredientes, pasos, fotos, nutrición (F4–F5)                  |
 | Fase 4 — Planificador   | Completada | Vista semanal vertical, slots, drag-and-drop, sobras, texto libre, Realtime |
-| Fase 5 — Lista compra   | Pendiente | Generación automática, agrupación, exportación WhatsApp                      |
+| Fase 5 — Lista compra   | Completada | Vista agrupada, CRUD, consolidación al añadir, exportación, Realtime hogar   |
 | Fase 6 — Red social     | Backlog  | Recetas públicas, descubrimiento, valoraciones, seguimiento                  |
 
 ---
@@ -214,8 +214,8 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Lista de miembros del hogar con rol (admin / miembro)
 - [x] Expulsar miembro del hogar (solo admin, con confirmación modal)
 - [x] Abandonar hogar (con confirmación modal)
-- [] Lógica de modo individual: si el usuario no tiene hogar, usa su propio planificador y lista
-  - UI informativa en perfil y pantalla de hogar; datos `weekly_plans` / `shopping_lists` por `user_id` → Fases 4–5
+- [x] Lógica de modo individual: si el usuario no tiene hogar, usa su propio planificador y lista
+  - `weekly_plans` / `shopping_lists` por `user_id` en `PlannerRepository` y `ShoppingRepository`
 
 ---
 
@@ -281,13 +281,14 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Slot vacío: pulsar o soltar receta para añadir
 - [x] Slot con receta(s): muestra nombre(s) con chips de color según tipo (receta / sobras / texto libre)
 - [x] Slot con varias recetas: lista vertical con botón «Añadir»
-- [ ] Desde el planificador: pulsar una receta de un slot → navegar a detalle de receta
+- [x] Desde el planificador: pulsar una receta de un slot → navegar a detalle de receta
 
 ### F7 - Gestión de slots
 
 - [x] Modal/pantalla de selección de receta para un slot (lista del recetario con buscador)
 - [x] Botón «Añadir texto libre» para entradas sin receta (nombre + raciones; no va a lista de la compra)
-- [x] Al seleccionar receta (tap o drag): diálogo de raciones con checkbox **Son sobras** (omite ingredientes en lista de la compra)
+- [x] Al seleccionar receta (tap o drag): diálogo de raciones con stepper **− / número / +** y checkbox **Son sobras** (omite ingredientes en lista de la compra)
+  - `servings_dialog.dart` → `_ServingsStepper`
 - [x] Confirmar asignación: inserta fila en `plan_slots` y sincroniza ingredientes en `shopping_items` (si hay receta y no es sobra)
 - [x] Actualización optimista de la UI (sin recarga completa al añadir/quitar)
 - [x] Eliminar comida concreta de un slot (botón ✕ + confirmación; no afecta a otras del mismo slot)
@@ -304,34 +305,39 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### F9 - Vista y gestión de la lista
 
-- [ ] Pantalla de lista de la compra agrupada por categoría de ingrediente
-- [ ] Ítem de lista: nombre, cantidad, unidad, categoría, estado (comprado / pendiente)
-- [ ] Ítem marcado como comprado: aparece tachado y se colapsa al final de su categoría
-- [ ] Marcar/desmarcar ítem comprado
-- [ ] Añadir ítem manualmente (modal con campos: nombre, cantidad, unidad, categoría)
-- [ ] Editar ítem (swipe para editar o tap en el ítem)
-- [ ] Eliminar ítem individual (swipe + confirmación)
-- [ ] Botón «Limpiar lista» con confirmación modal (elimina todos los ítems)
+- [x] Pantalla de lista de la compra agrupada por categoría de ingrediente
+  - `shopping_list_screen.dart`; agrupación en `groupShoppingItemsByCategory`
+- [x] Ítem de lista: nombre, cantidad, unidad, categoría, estado (comprado / pendiente)
+  - `shopping_item_tile.dart`
+- [x] Ítem marcado como comprado: aparece tachado y se colapsa al final de su categoría
+- [x] Marcar/desmarcar ítem comprado
+- [x] Añadir ítem manualmente (modal con campos: nombre, cantidad, unidad, categoría)
+  - `add_edit_item_sheet.dart`
+- [x] Editar ítem (swipe para editar o tap largo en el ítem)
+- [x] Eliminar ítem individual (swipe + confirmación)
+- [x] Botón «Limpiar lista» con confirmación modal (elimina todos los ítems)
 
 ### F10 - Automatización desde el planificador
 
 - [x] Al añadir receta al planificador: insertar sus ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
   - Omitido si `is_leftover = true` o si el slot es texto libre (`recipe_id` null)
-- [ ] Consolidación: si ya existe un ítem con el mismo nombre y unidad, sumar la cantidad en lugar de duplicar
+- [x] Consolidación: si ya existe un ítem con el mismo nombre y unidad, sumar la cantidad en lugar de duplicar
+  - `_syncShoppingListAdd` en `PlannerRepository`; match case-insensitive por nombre
 - [x] Al eliminar receta del planificador: borrar ítems por `plan_slot_id`
   - Pendiente: restar cantidad en lugar de borrar cuando haya consolidación
 
 ### F11 - Exportación
 
-- [ ] Botón «Compartir lista» en la pantalla de lista de la compra
-- [ ] Generar texto plano con los ítems agrupados por categoría
+- [x] Botón «Compartir lista» en la pantalla de lista de la compra
+- [x] Generar texto plano con los ítems agrupados por categoría
   - Formato: `• 500 g Pechuga de pollo`, `• 1 Pimiento rojo`, etc.
-- [ ] Abrir diálogo de compartir del sistema (paquete `share_plus`): compatible con WhatsApp y otras apps
+- [x] Abrir diálogo de compartir del sistema (paquete `share_plus`): compatible con WhatsApp y otras apps
 
 ### F12 - Realtime (hogar)
 
-- [ ] Suscripción Supabase Realtime a cambios en `shopping_items` de la lista activa del hogar
-- [ ] Refrescar UI de la lista al recibir cambios de otros miembros del hogar
+- [x] Suscripción Supabase Realtime a cambios en `shopping_items` de la lista activa del hogar
+  - `ShoppingItemsNotifier` → canal `shopping_items:{listId}`
+- [x] Refrescar UI de la lista al recibir cambios de otros miembros del hogar
 
 ---
 

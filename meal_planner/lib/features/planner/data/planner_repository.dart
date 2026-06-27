@@ -203,24 +203,73 @@ class PlannerRepository {
 
     if (ingredients.isEmpty) return;
 
-    final rows = ingredients.map((ingredient) {
+    final existingData = await supabase
+        .from(ShoppingItem.table_name)
+        .select()
+        .eq(ShoppingItem.c_shoppingListId, list.id);
+
+    var existingItems = ShoppingItem.converter(
+      (existingData as List).cast<Map<String, dynamic>>(),
+    );
+
+    for (final ingredient in ingredients) {
       final scaledQty = ingredient.quantity != null
           ? ingredient.quantity! * scale
           : null;
 
-      return ShoppingItem.insert(
-        shoppingListId: list.id,
-        name: ingredient.name,
-        quantity: scaledQty,
-        unit: ingredient.unit,
-        category: ingredient.category,
-        isManual: false,
-        planSlotId: slot.id,
-        ingredientId: ingredient.id,
+      final matchIndex = existingItems.indexWhere(
+        (item) => _matchesForConsolidation(
+          item,
+          name: ingredient.name,
+          unit: ingredient.unit,
+        ),
       );
-    }).toList();
 
-    await supabase.from(ShoppingItem.table_name).insert(rows);
+      if (matchIndex >= 0) {
+        final match = existingItems[matchIndex];
+        if (scaledQty != null) {
+          final newQty = (match.quantity ?? 0) + scaledQty;
+          await supabase
+              .from(ShoppingItem.table_name)
+              .update({ShoppingItem.c_quantity: newQty.toString()})
+              .eq(ShoppingItem.c_id, match.id);
+
+          existingItems = [
+            ...existingItems.sublist(0, matchIndex),
+            match.copyWith(quantity: newQty),
+            ...existingItems.sublist(matchIndex + 1),
+          ];
+        }
+        continue;
+      }
+
+      final data = await supabase
+          .from(ShoppingItem.table_name)
+          .insert(
+            ShoppingItem.insert(
+              shoppingListId: list.id,
+              name: ingredient.name,
+              quantity: scaledQty,
+              unit: ingredient.unit,
+              category: ingredient.category,
+              isManual: false,
+              planSlotId: slot.id,
+              ingredientId: ingredient.id,
+            ),
+          )
+          .select()
+          .single();
+
+      existingItems = [...existingItems, ShoppingItem.fromJson(data)];
+    }
+  }
+
+  bool _matchesForConsolidation(
+    ShoppingItem item, {
+    required String name,
+    required String? unit,
+  }) {
+    return item.name.toLowerCase() == name.toLowerCase() && item.unit == unit;
   }
 
   String _formatDate(DateTime date) {
