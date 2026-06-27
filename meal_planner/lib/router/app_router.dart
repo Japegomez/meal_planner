@@ -11,6 +11,8 @@ import 'package:meal_planner/features/household/presentation/join_household_scre
 import 'package:meal_planner/features/planner/presentation/planner_screen.dart';
 import 'package:meal_planner/features/profile/presentation/edit_profile_screen.dart';
 import 'package:meal_planner/features/profile/presentation/profile_screen.dart';
+import 'package:meal_planner/features/recipes/presentation/recipe_detail_screen.dart';
+import 'package:meal_planner/features/recipes/presentation/recipe_form_screen.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_list_screen.dart';
 import 'package:meal_planner/features/shopping/presentation/shopping_list_screen.dart';
 import 'package:meal_planner/router/home_shell.dart';
@@ -69,6 +71,26 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/home/recipes',
                 builder: (_, _) => const RecipeListScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (_, _) => const RecipeFormScreen(),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) => RecipeDetailScreen(
+                      recipeId: state.pathParameters['id']!,
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (_, state) => RecipeFormScreen(
+                          recipeId: state.pathParameters['id'],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

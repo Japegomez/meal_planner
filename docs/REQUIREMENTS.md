@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.4 — Fase 2 en progreso (auth, perfil y hogar completados en cliente)
+> **Versión:** 0.5 — Fase 3 completada (recetario F4–F5 en cliente)
 > **Fecha:** Junio 2026
-> **Estado:** F1–F3 cerradas en UI; siguiente hito: recetario (Fase 3)
+> **Estado:** F1–F3 (auth, perfil, hogar) y F4–F5 (recetario) en cliente; siguiente hito: planificador semanal (Fase 4)
 
 ---
 
