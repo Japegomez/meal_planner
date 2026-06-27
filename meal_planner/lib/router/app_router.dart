@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:meal_planner/core/config/legal_urls.dart';
 import 'package:meal_planner/features/auth/domain/auth_state.dart';
 import 'package:meal_planner/features/auth/presentation/auth_provider.dart';
 import 'package:meal_planner/features/auth/presentation/forgot_password_screen.dart';
@@ -9,7 +10,9 @@ import 'package:meal_planner/features/household/presentation/create_household_sc
 import 'package:meal_planner/features/household/presentation/household_screen.dart';
 import 'package:meal_planner/features/household/presentation/join_household_screen.dart';
 import 'package:meal_planner/features/planner/presentation/planner_screen.dart';
+import 'package:meal_planner/features/profile/presentation/delete_account_screen.dart';
 import 'package:meal_planner/features/profile/presentation/edit_profile_screen.dart';
+import 'package:meal_planner/features/profile/presentation/legal_document_screen.dart';
 import 'package:meal_planner/features/profile/presentation/profile_screen.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_detail_screen.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_form_screen.dart';
@@ -24,12 +27,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     redirect: (context, state) {
       final isLoggingIn = state.matchedLocation.startsWith('/auth');
+      final isLegal = state.matchedLocation.startsWith('/legal');
       final isAuthenticated = authState.maybeWhen(
         data: (value) => value is AuthAuthenticated,
         orElse: () => false,
       );
 
-      if (!isAuthenticated && !isLoggingIn) {
+      if (!isAuthenticated && !isLoggingIn && !isLegal) {
         return '/auth/login';
       }
       if (isAuthenticated && isLoggingIn) {
@@ -53,6 +57,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/forgot-password',
         builder: (_, _) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/legal/terms',
+        builder: (_, _) => LegalDocumentScreen(
+          title: 'Términos y Condiciones',
+          url: LegalUrls.terms,
+        ),
+      ),
+      GoRoute(
+        path: '/legal/privacy',
+        builder: (_, _) => LegalDocumentScreen(
+          title: 'Política de Privacidad',
+          url: LegalUrls.privacy,
+        ),
       ),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) =>
@@ -125,6 +143,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                         builder: (_, _) => const JoinHouseholdScreen(),
                       ),
                     ],
+                  ),
+                  GoRoute(
+                    path: 'delete-account',
+                    builder: (_, _) => const DeleteAccountScreen(),
                   ),
                 ],
               ),

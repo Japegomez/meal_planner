@@ -108,6 +108,25 @@ class AuthRepository {
     await supabase.auth.signOut();
   }
 
+  Future<void> deleteAccount() async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AuthProviderException('No authenticated user');
+    }
+
+    await _deleteUserAvatar(userId);
+    await supabase.rpc<void>('delete_user_account');
+    await signOut();
+  }
+
+  Future<void> _deleteUserAvatar(String userId) async {
+    try {
+      await supabase.storage.from('avatars').remove(['$userId/avatar.jpg']);
+    } catch (_) {
+      // Best-effort cleanup before account deletion.
+    }
+  }
+
   Session? get currentSession => supabase.auth.currentSession;
 
   Stream<AuthState> get authStateChanges async* {
