@@ -14,6 +14,8 @@ workflows:
         - google
       vars:
         PACKAGE_NAME: com.japegomez.meal_planner
+        # Optional: add to last Play Store versionCode if migrating existing releases
+        BUILD_NUMBER_OFFSET: 0
     triggering:
       events:
         - push
@@ -42,17 +44,40 @@ workflows:
       - name: Flutter unit tests
         script: |
           flutter test
+      - name: Set build version
+        script: |
+          BUILD_NUMBER_OFFSET="${BUILD_NUMBER_OFFSET:-0}"
+          CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
+          APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')
+          echo "APP_VERSION=$APP_VERSION" >> $CM_ENV
+          echo "CM_BUILD_NUM=$CM_BUILD_NUM" >> $CM_ENV
+          echo "Release version: $APP_VERSION+$CM_BUILD_NUM (PROJECT_BUILD_NUMBER=$PROJECT_BUILD_NUMBER, offset=$BUILD_NUMBER_OFFSET)"
       - name: Build Android App Bundle
         script: |
           flutter build appbundle --release \
+            --build-name="$APP_VERSION" \
+            --build-number="$CM_BUILD_NUM" \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
             --dart-define=SENTRY_DSN=$SENTRY_DSN \
             --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID \
             --dart-define=GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+      - name: Export AAB artifact
+        script: |
+          set -e
+          AAB=$(find "$CM_BUILD_DIR/meal_planner" -path "*/outputs/bundle/release/*.aab" -type f | head -1)
+          if [ -z "$AAB" ]; then
+            echo "ERROR: AAB not found under meal_planner/build"
+            find "$CM_BUILD_DIR" -name "*.aab" -type f || true
+            exit 1
+          fi
+          echo "Found AAB: $AAB"
+          cp "$AAB" "$CM_EXPORT_DIR/app-release.aab"
+          ls -la "$CM_EXPORT_DIR"
     artifacts:
-      - meal_planner/build/**/outputs/**/*.aab
-      - meal_planner/build/**/outputs/**/mapping.txt
+      - $CM_EXPORT_DIR/app-release.aab
+      - $CM_BUILD_DIR/meal_planner/build/app/outputs/bundle/release/*.aab
+      - $CM_BUILD_DIR/meal_planner/build/**/outputs/**/mapping.txt
       - flutter_drive.log
 
   ios-workflow:
@@ -73,6 +98,7 @@ workflows:
         bundle_identifier: com.japegomez.mealPlanner
       vars:
         BUNDLE_ID: com.japegomez.mealPlanner
+        BUILD_NUMBER_OFFSET: 0
     triggering:
       events:
         - push
@@ -101,15 +127,38 @@ workflows:
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
+      - name: Set build version
+        script: |
+          BUILD_NUMBER_OFFSET="${BUILD_NUMBER_OFFSET:-0}"
+          CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
+          APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')
+          echo "APP_VERSION=$APP_VERSION" >> $CM_ENV
+          echo "CM_BUILD_NUM=$CM_BUILD_NUM" >> $CM_ENV
+          echo "Release version: $APP_VERSION+$CM_BUILD_NUM (PROJECT_BUILD_NUMBER=$PROJECT_BUILD_NUMBER, offset=$BUILD_NUMBER_OFFSET)"
       - name: Build iOS IPA
         script: |
           flutter build ipa --release \
+            --build-name="$APP_VERSION" \
+            --build-number="$CM_BUILD_NUM" \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
             --dart-define=SENTRY_DSN=$SENTRY_DSN \
             --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID \
             --dart-define=GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+      - name: Export IPA artifact
+        script: |
+          set -e
+          IPA=$(find "$CM_BUILD_DIR/meal_planner" -path "*/build/ios/ipa/*.ipa" -type f | head -1)
+          if [ -z "$IPA" ]; then
+            echo "ERROR: IPA not found under meal_planner/build/ios/ipa"
+            find "$CM_BUILD_DIR" -name "*.ipa" -type f || true
+            exit 1
+          fi
+          echo "Found IPA: $IPA"
+          cp "$IPA" "$CM_EXPORT_DIR/app-release.ipa"
+          ls -la "$CM_EXPORT_DIR"
     artifacts:
-      - meal_planner/build/ios/ipa/*.ipa
+      - $CM_EXPORT_DIR/app-release.ipa
+      - $CM_BUILD_DIR/meal_planner/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log

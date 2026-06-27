@@ -20,6 +20,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _usernameController = TextEditingController();
   bool _isLoading = false;
   bool _registrationSent = false;
+  bool _acceptedTerms = false;
   String? _errorMessage;
 
   @override
@@ -33,6 +34,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_acceptedTerms) {
+      setState(() {
+        _errorMessage = 'Debes aceptar los Términos y la Política de Privacidad';
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -178,6 +185,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               }
                               return null;
                             },
+                          ),
+                          const SizedBox(height: 12),
+                          CheckboxListTile(
+                            value: _acceptedTerms,
+                            onChanged: _isLoading || !Env.hasSupabase
+                                ? null
+                                : (value) => setState(
+                                      () => _acceptedTerms = value ?? false,
+                                    ),
+                            contentPadding: EdgeInsets.zero,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            title: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                const Text('Acepto los '),
+                                TextButton(
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () => context.push('/legal/terms'),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text('Términos'),
+                                ),
+                                const Text(' y la '),
+                                TextButton(
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () => context.push('/legal/privacy'),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text('Política de Privacidad'),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 16),
                           FilledButton(

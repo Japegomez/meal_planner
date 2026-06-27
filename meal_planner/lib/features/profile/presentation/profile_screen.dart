@@ -132,12 +132,42 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
+                Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.description_outlined),
+                        title: const Text('Términos y Condiciones'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push('/legal/terms'),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.privacy_tip_outlined),
+                        title: const Text('Política de Privacidad'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push('/legal/privacy'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
                 OutlinedButton.icon(
                   onPressed: user == null
                       ? null
                       : () => _confirmSignOut(context, ref),
                   icon: const Icon(Icons.logout),
                   label: const Text('Cerrar sesión'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: user == null
+                      ? null
+                      : () => context.push('/home/profile/delete-account'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                  ),
+                  child: const Text('Eliminar cuenta'),
                 ),
                 if (profileAsync.hasError) ...[
                   const SizedBox(height: 16),
