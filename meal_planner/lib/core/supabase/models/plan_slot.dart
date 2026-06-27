@@ -11,6 +11,9 @@ class PlanSlot implements SupadartClass<PlanSlot> {
   final String? recipeId;
   final int servings;
   final int position;
+  // Extended manually — re-run supadart if schema changes again
+  final bool isLeftover;
+  final String? notes;
 
   const PlanSlot({
     required this.id,
@@ -20,6 +23,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
     this.recipeId,
     required this.servings,
     required this.position,
+    this.isLeftover = false,
+    this.notes,
   });
 
   static String get table_name => 'plan_slots';
@@ -30,6 +35,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
   static String get c_recipeId => 'recipe_id';
   static String get c_servings => 'servings';
   static String get c_position => 'position';
+  static String get c_isLeftover => 'is_leftover';
+  static String get c_notes => 'notes';
 
   static List<PlanSlot> converter(List<Map<String, dynamic>> data) {
     return data.map(PlanSlot.fromJson).toList();
@@ -47,6 +54,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
     String? recipeId,
     int? servings,
     int? position,
+    bool? isLeftover,
+    String? notes,
   }) {
     return {
       'id': ?id,
@@ -56,6 +65,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       'recipe_id': ?recipeId,
       'servings': ?servings,
       'position': ?position,
+      if (isLeftover != null) 'is_leftover': isLeftover,
+      'notes': ?notes,
     };
   }
 
@@ -67,6 +78,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
     String? recipeId,
     int? servings,
     int? position,
+    bool? isLeftover,
+    String? notes,
   }) {
     return _generateMap(
       id: id,
@@ -76,6 +89,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       recipeId: recipeId,
       servings: servings,
       position: position,
+      isLeftover: isLeftover,
+      notes: notes,
     );
   }
 
@@ -87,6 +102,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
     String? recipeId,
     int? servings,
     int? position,
+    bool? isLeftover,
+    String? notes,
   }) {
     return _generateMap(
       id: id,
@@ -96,6 +113,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       recipeId: recipeId,
       servings: servings,
       position: position,
+      isLeftover: isLeftover,
+      notes: notes,
     );
   }
 
@@ -116,6 +135,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       position: jsonn['position'] != null
           ? int.parse(jsonn['position'].toString())
           : 0,
+      isLeftover: jsonn['is_leftover'] as bool? ?? false,
+      notes: jsonn['notes'] as String?,
     );
   }
 
@@ -127,6 +148,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
     String? recipeId,
     int? servings,
     int? position,
+    bool? isLeftover,
+    String? notes,
   }) {
     return {
       'id': ?id,
@@ -136,6 +159,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       'recipe_id': ?recipeId,
       'servings': ?servings,
       'position': ?position,
+      if (isLeftover != null) 'is_leftover': isLeftover,
+      'notes': ?notes,
     };
   }
 
@@ -148,6 +173,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       recipeId: recipeId,
       servings: servings,
       position: position,
+      isLeftover: isLeftover,
+      notes: notes,
     );
   }
 
@@ -160,6 +187,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
     Object? recipeId = _unset,
     Object? servings = _unset,
     Object? position = _unset,
+    Object? isLeftover = _unset,
+    Object? notes = _unset,
   }) {
     return PlanSlot(
       id: id == _unset ? this.id : id as String,
@@ -169,6 +198,8 @@ class PlanSlot implements SupadartClass<PlanSlot> {
       recipeId: recipeId == _unset ? this.recipeId : recipeId as String?,
       servings: servings == _unset ? this.servings : servings as int,
       position: position == _unset ? this.position : position as int,
+      isLeftover: isLeftover == _unset ? this.isLeftover : isLeftover as bool,
+      notes: notes == _unset ? this.notes : notes as String?,
     );
   }
 }

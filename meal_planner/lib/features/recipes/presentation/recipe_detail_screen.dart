@@ -103,7 +103,7 @@ class _RecipeDetailBody extends ConsumerWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              onPressed: () => context.push('edit'),
+              onPressed: () => context.push('/home/recipes/$recipeId/edit'),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline),

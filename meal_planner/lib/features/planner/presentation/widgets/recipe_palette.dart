@@ -1,0 +1,286 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meal_planner/core/supabase/models/recipe.dart';
+import 'package:meal_planner/features/recipes/presentation/recipe_provider.dart';
+
+/// Side panel that lists recipe cards which can be dragged onto planner slots.
+class RecipePalette extends ConsumerStatefulWidget {
+  const RecipePalette({
+    required this.onClose,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+    super.key,
+  });
+
+  final VoidCallback onClose;
+  final void Function(Offset globalPosition) onDragUpdate;
+  final VoidCallback onDragEnd;
+
+  @override
+  ConsumerState<RecipePalette> createState() => _RecipePaletteState();
+}
+
+class _RecipePaletteState extends ConsumerState<RecipePalette> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _query = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Recipe> _filter(List<Recipe> recipes) {
+    if (_query.isEmpty) return recipes;
+    return recipes
+        .where((recipe) => recipe.title.toLowerCase().contains(_query))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final recipesAsync = ref.watch(recipesProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      elevation: 8,
+      color: colorScheme.surface,
+      child: SafeArea(
+        left: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 4, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Recetario',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: widget.onClose,
+                    tooltip: 'Cerrar',
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: 'Buscar...',
+                  prefixIcon: Icon(Icons.search, size: 20),
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: recipesAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text('Error: $error'),
+                  ),
+                ),
+                data: (recipes) {
+                  final filtered = _filter(recipes);
+                  if (filtered.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          recipes.isEmpty
+                              ? 'No tienes recetas. Créalas en el recetario.'
+                              : 'Sin resultados',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      return _DraggableRecipeCard(
+                        recipe: filtered[index],
+                        onDragUpdate: widget.onDragUpdate,
+                        onDragEnd: widget.onDragEnd,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DraggableRecipeCard extends StatelessWidget {
+  const _DraggableRecipeCard({
+    required this.recipe,
+    required this.onDragUpdate,
+    required this.onDragEnd,
+  });
+
+  final Recipe recipe;
+  final void Function(Offset globalPosition) onDragUpdate;
+  final VoidCallback onDragEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = _RecipeCardContent(recipe: recipe);
+
+    return Draggable<Recipe>(
+      data: recipe,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: _DragFeedback(recipe: recipe),
+      childWhenDragging: Opacity(opacity: 0.4, child: card),
+      onDragUpdate: (details) => onDragUpdate(details.globalPosition),
+      onDragEnd: (_) => onDragEnd(),
+      onDraggableCanceled: (_, _) => onDragEnd(),
+      child: card,
+    );
+  }
+}
+
+class _RecipeCardContent extends ConsumerWidget {
+  const _RecipeCardContent({required this.recipe});
+
+  final Recipe recipe;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photoUrlAsync = ref.watch(recipePhotoUrlProvider(recipe.photoUrl));
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: photoUrlAsync.when(
+                  data: (url) {
+                    if (url == null) {
+                      return const ColoredBox(
+                        color: Color(0xFFE0E0E0),
+                        child: Icon(Icons.restaurant, size: 22),
+                      );
+                    }
+                    return CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => const ColoredBox(
+                        color: Color(0xFFE0E0E0),
+                      ),
+                      errorWidget: (_, _, _) => const Icon(Icons.broken_image),
+                    );
+                  },
+                  loading: () => const ColoredBox(color: Color(0xFFE0E0E0)),
+                  error: (_, _) => const ColoredBox(
+                    color: Color(0xFFE0E0E0),
+                    child: Icon(Icons.restaurant, size: 22),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    recipe.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  Text(
+                    '${recipe.servings} raciones',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.drag_indicator,
+              size: 18,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DragFeedback extends StatelessWidget {
+  const _DragFeedback({required this.recipe});
+
+  final Recipe recipe;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 160,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: const [
+            BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.restaurant, size: 16),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                recipe.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

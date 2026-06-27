@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meal_planner/core/supabase/models/recipe.dart';
 import 'package:meal_planner/features/planner/presentation/planner_provider.dart';
+import 'package:meal_planner/features/planner/presentation/widgets/servings_dialog.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_provider.dart';
 
 class RecipePickerSheet extends ConsumerStatefulWidget {
@@ -48,8 +49,7 @@ class _RecipePickerSheetState extends ConsumerState<RecipePickerSheet> {
     }
 
     setState(() => _isSearching = true);
-    final results =
-        await ref.read(recipesProvider.notifier).search(query);
+    final results = await ref.read(recipesProvider.notifier).search(query);
     if (!mounted) return;
     setState(() {
       _filteredRecipes = results;
@@ -58,18 +58,36 @@ class _RecipePickerSheetState extends ConsumerState<RecipePickerSheet> {
   }
 
   Future<void> _selectRecipe(Recipe recipe) async {
-    final servings = await showDialog<int>(
-      context: context,
-      builder: (context) => _ServingsDialog(defaultServings: recipe.servings),
+    final result = await showServingsDialog(
+      context,
+      defaultServings: recipe.servings,
     );
 
-    if (servings == null || !mounted) return;
+    if (result == null || !mounted) return;
 
     await ref.read(planSlotsProvider.notifier).addSlot(
           dayOfWeek: widget.dayOfWeek,
           mealType: widget.mealType,
           recipeId: recipe.id,
-          servings: servings,
+          servings: result.servings,
+          recipeTitle: recipe.title,
+          isLeftover: result.isLeftover,
+        );
+
+    if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _addTextEntry() async {
+    final result = await showAddTextDialog(context);
+    if (result == null || !mounted) return;
+
+    await ref.read(planSlotsProvider.notifier).addSlot(
+          dayOfWeek: widget.dayOfWeek,
+          mealType: widget.mealType,
+          recipeId: null,
+          servings: result.servings,
+          notes: result.notes,
+          isLeftover: false,
         );
 
     if (mounted) Navigator.pop(context);
@@ -115,7 +133,21 @@ class _RecipePickerSheetState extends ConsumerState<RecipePickerSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          // Free-text entry option
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: ListTile(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              leading: const Icon(Icons.edit_note),
+              title: const Text('Añadir texto libre'),
+              subtitle: const Text('Sin receta (ej. pedido, fuera, etc.)'),
+              onTap: _addTextEntry,
+            ),
+          ),
+          const Divider(height: 1),
           Expanded(
             child: recipesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -154,69 +186,6 @@ class _RecipePickerSheetState extends ConsumerState<RecipePickerSheet> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ServingsDialog extends StatefulWidget {
-  const _ServingsDialog({required this.defaultServings});
-
-  final int defaultServings;
-
-  @override
-  State<_ServingsDialog> createState() => _ServingsDialogState();
-}
-
-class _ServingsDialogState extends State<_ServingsDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller =
-        TextEditingController(text: widget.defaultServings.toString());
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _confirm() {
-    final value = int.tryParse(_controller.text.trim());
-    if (value == null || value <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Introduce un número válido de raciones')),
-      );
-      return;
-    }
-    Navigator.pop(context, value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Raciones'),
-      content: TextField(
-        controller: _controller,
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          labelText: 'Número de raciones',
-          border: OutlineInputBorder(),
-        ),
-        onSubmitted: (_) => _confirm(),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _confirm,
-          child: const Text('Confirmar'),
-        ),
-      ],
     );
   }
 }

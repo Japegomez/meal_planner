@@ -1,56 +1,156 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meal_planner/core/utils/date_utils.dart';
 import 'package:meal_planner/features/planner/domain/planner_constants.dart';
 import 'package:meal_planner/features/planner/domain/slot_item.dart';
 import 'package:meal_planner/features/planner/presentation/planner_provider.dart';
-import 'package:meal_planner/features/planner/presentation/widgets/planner_slot_card.dart';
+import 'package:meal_planner/features/planner/presentation/widgets/meal_slot.dart';
+import 'package:meal_planner/features/planner/presentation/widgets/recipe_palette.dart';
 
-class PlannerScreen extends ConsumerWidget {
+class PlannerScreen extends ConsumerStatefulWidget {
   const PlannerScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PlannerScreen> createState() => _PlannerScreenState();
+}
+
+class _PlannerScreenState extends ConsumerState<PlannerScreen> {
+  bool _paletteOpen = false;
+
+  final _scrollController = ScrollController();
+  final _listKey = GlobalKey();
+  Timer? _autoScrollTimer;
+  int _autoScrollDirection = 0;
+
+  static const _edgeZone = 90.0;
+  static const _scrollStep = 14.0;
+
+  void _togglePalette() => setState(() => _paletteOpen = !_paletteOpen);
+
+  @override
+  void dispose() {
+    _stopAutoScroll();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onDragUpdate(Offset globalPosition) {
+    final renderBox =
+        _listKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final top = renderBox.localToGlobal(Offset.zero).dy;
+    final bottom = top + renderBox.size.height;
+    final y = globalPosition.dy;
+
+    if (y < top + _edgeZone) {
+      _startAutoScroll(-1);
+    } else if (y > bottom - _edgeZone) {
+      _startAutoScroll(1);
+    } else {
+      _stopAutoScroll();
+    }
+  }
+
+  void _startAutoScroll(int direction) {
+    if (_autoScrollTimer != null && _autoScrollDirection == direction) return;
+    _stopAutoScroll();
+    _autoScrollDirection = direction;
+    _autoScrollTimer =
+        Timer.periodic(const Duration(milliseconds: 16), (_) {
+      if (!_scrollController.hasClients) return;
+      final position = _scrollController.position;
+      final next = (position.pixels + direction * _scrollStep)
+          .clamp(position.minScrollExtent, position.maxScrollExtent);
+      if (next == position.pixels) {
+        _stopAutoScroll();
+        return;
+      }
+      _scrollController.jumpTo(next);
+    });
+  }
+
+  void _stopAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    _autoScrollDirection = 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final weekStart = ref.watch(currentWeekProvider);
     final planAsync = ref.watch(weeklyPlanProvider);
     final slotsAsync = ref.watch(planSlotsProvider);
-    final isCurrentWeek =
-        weekStart == startOfIsoWeek(DateTime.now());
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final paletteWidth = (screenWidth * 0.55).clamp(190.0, 280.0);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Planificador'),
         actions: [
-          if (isCurrentWeek)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Chip(
-                label: const Text('Esta semana'),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
+          IconButton(
+            icon: Icon(_paletteOpen ? Icons.menu_book : Icons.menu_book_outlined),
+            tooltip: _paletteOpen ? 'Ocultar recetario' : 'Mostrar recetario',
+            onPressed: _togglePalette,
+          ),
         ],
       ),
       body: planAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Error: $error')),
-        data: (_) => Column(
+        data: (_) => Stack(
           children: [
-            _WeekNavigationHeader(weekStart: weekStart),
-            Expanded(
-              child: slotsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text('Error: $error')),
-                data: (slots) => _PlannerGrid(
-                  weekStart: weekStart,
-                  slots: slots,
+            Column(
+              children: [
+                _WeekNavigationHeader(weekStart: weekStart),
+                Expanded(
+                  child: AnimatedPadding(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    padding: EdgeInsets.only(
+                      right: _paletteOpen ? paletteWidth : 0,
+                    ),
+                    child: slotsAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, _) => Center(child: Text('Error: $error')),
+                      data: (slots) => _VerticalPlanner(
+                        listKey: _listKey,
+                        scrollController: _scrollController,
+                        weekStart: weekStart,
+                        slots: slots,
+                      ),
+                    ),
+                  ),
                 ),
+              ],
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              top: 0,
+              bottom: 0,
+              right: _paletteOpen ? 0 : -paletteWidth,
+              width: paletteWidth,
+              child: RecipePalette(
+                onClose: _togglePalette,
+                onDragUpdate: _onDragUpdate,
+                onDragEnd: _stopAutoScroll,
               ),
             ),
           ],
         ),
       ),
+      floatingActionButton: _paletteOpen
+          ? null
+          : FloatingActionButton(
+              onPressed: _togglePalette,
+              tooltip: 'Mostrar recetario',
+              child: const Icon(Icons.menu_book),
+            ),
     );
   }
 }
@@ -62,8 +162,10 @@ class _WeekNavigationHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isCurrentWeek = weekStart == startOfIsoWeek(DateTime.now());
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: Row(
         children: [
           IconButton(
@@ -74,10 +176,21 @@ class _WeekNavigationHeader extends ConsumerWidget {
             },
           ),
           Expanded(
-            child: Text(
-              formatWeekRange(weekStart),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
+            child: Column(
+              children: [
+                Text(
+                  formatWeekRange(weekStart),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                if (isCurrentWeek)
+                  Text(
+                    'Esta semana',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+              ],
             ),
           ),
           IconButton(
@@ -93,12 +206,16 @@ class _WeekNavigationHeader extends ConsumerWidget {
   }
 }
 
-class _PlannerGrid extends StatelessWidget {
-  const _PlannerGrid({
+class _VerticalPlanner extends StatelessWidget {
+  const _VerticalPlanner({
+    required this.listKey,
+    required this.scrollController,
     required this.weekStart,
     required this.slots,
   });
 
+  final Key listKey;
+  final ScrollController scrollController;
   final DateTime weekStart;
   final List<SlotItem> slots;
 
@@ -106,8 +223,7 @@ class _PlannerGrid extends StatelessWidget {
     return slots
         .where(
           (item) =>
-              item.slot.dayOfWeek == dayOfWeek &&
-              item.slot.mealType == mealType,
+              item.slot.dayOfWeek == dayOfWeek && item.slot.mealType == mealType,
         )
         .toList()
       ..sort((a, b) => a.slot.position.compareTo(b.slot.position));
@@ -115,107 +231,88 @@ class _PlannerGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Table(
-            defaultColumnWidth: const FixedColumnWidth(110),
-            border: TableBorder.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            children: [
-              TableRow(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                ),
-                children: [
-                  const SizedBox(width: 72, height: 40),
-                  for (var day = 1; day <= 7; day++)
-                    _DayHeaderCell(
-                      label: DayOfWeek.labels[day - 1],
-                      date: weekStart.add(Duration(days: day - 1)),
-                    ),
-                ],
-              ),
-              for (final mealType in MealType.all)
-                TableRow(
-                  children: [
-                    _MealLabelCell(label: MealType.label(mealType)),
-                    for (var day = 1; day <= 7; day++)
-                      PlannerSlotCard(
-                        dayOfWeek: day,
-                        mealType: mealType,
-                        slots: _slotsForCell(day, mealType),
-                      ),
-                  ],
-                ),
-            ],
-          ),
-        ),
-      ),
+    return ListView.builder(
+      key: listKey,
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 88),
+      itemCount: 7,
+      itemBuilder: (context, index) {
+        final dayOfWeek = index + 1;
+        final date = weekStart.add(Duration(days: index));
+        return _DayCard(
+          dayOfWeek: dayOfWeek,
+          date: date,
+          slotsForCell: _slotsForCell,
+        );
+      },
     );
   }
 }
 
-class _DayHeaderCell extends StatelessWidget {
-  const _DayHeaderCell({required this.label, required this.date});
+class _DayCard extends StatelessWidget {
+  const _DayCard({
+    required this.dayOfWeek,
+    required this.date,
+    required this.slotsForCell,
+  });
 
-  final String label;
+  final int dayOfWeek;
   final DateTime date;
+  final List<SlotItem> Function(int dayOfWeek, String mealType) slotsForCell;
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isToday = _isSameDay(date, DateTime.now());
+    final isToday = _isToday(date);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      height: 48,
-      alignment: Alignment.center,
-      decoration: isToday
-          ? BoxDecoration(color: colorScheme.primaryContainer)
-          : null,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: isToday ? FontWeight.bold : null,
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  formatDayHeader(date),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isToday ? colorScheme.primary : null,
+                      ),
                 ),
-          ),
-          Text(
-            '${date.day}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-}
-
-class _MealLabelCell extends StatelessWidget {
-  const _MealLabelCell({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 72,
-      height: 96,
-      alignment: Alignment.center,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: RotatedBox(
-        quarterTurns: 3,
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium,
+                if (isToday) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Hoy',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 4),
+            for (final mealType in MealType.all)
+              MealSlot(
+                dayOfWeek: dayOfWeek,
+                mealType: mealType,
+                slots: slotsForCell(dayOfWeek, mealType),
+              ),
+          ],
         ),
       ),
     );

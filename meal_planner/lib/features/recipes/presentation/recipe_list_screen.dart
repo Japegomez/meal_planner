@@ -45,7 +45,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Recetario')),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('new'),
+        onPressed: () => context.push('/home/recipes/new'),
         tooltip: 'Nueva receta',
         child: const Icon(Icons.add),
       ),
@@ -157,7 +157,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                         const Text('No hay recetas todavía'),
                         const SizedBox(height: 8),
                         FilledButton.icon(
-                          onPressed: () => context.push('new'),
+                          onPressed: () => context.push('/home/recipes/new'),
                           icon: const Icon(Icons.add),
                           label: const Text('Crear primera receta'),
                         ),
@@ -203,7 +203,7 @@ class _RecipeCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => context.push(recipe.id),
+        onTap: () => context.push('/home/recipes/${recipe.id}'),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

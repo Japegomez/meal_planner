@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meal_planner/core/supabase/models/plan_slot.dart';
 import 'package:meal_planner/core/supabase/models/weekly_plan.dart';
 import 'package:meal_planner/core/supabase/supabase_client.dart';
 import 'package:meal_planner/core/utils/date_utils.dart';
@@ -102,16 +103,44 @@ class PlanSlotsNotifier extends AsyncNotifier<List<SlotItem>> {
   Future<void> addSlot({
     required int dayOfWeek,
     required String mealType,
-    required String recipeId,
+    String? recipeId,
     required int servings,
+    String? recipeTitle,
+    bool isLeftover = false,
+    String? notes,
   }) async {
     final plan = await ref.read(weeklyPlanProvider.future);
     final household = ref.read(currentHouseholdProvider).valueOrNull;
     final userId = _userId;
     if (userId == null) return;
 
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    final previous = state.valueOrNull ?? const <SlotItem>[];
+
+    final position = previous
+        .where(
+          (item) =>
+              item.slot.dayOfWeek == dayOfWeek && item.slot.mealType == mealType,
+        )
+        .length;
+
+    final optimistic = SlotItem(
+      slot: PlanSlot(
+        id: 'temp-${DateTime.now().microsecondsSinceEpoch}',
+        planId: plan.id,
+        dayOfWeek: dayOfWeek,
+        mealType: mealType,
+        recipeId: recipeId,
+        servings: servings,
+        position: position,
+        isLeftover: isLeftover,
+        notes: notes,
+      ),
+      recipeTitle: recipeTitle,
+    );
+
+    state = AsyncData([...previous, optimistic]);
+
+    try {
       await _repository.addSlot(
         planId: plan.id,
         dayOfWeek: dayOfWeek,
@@ -120,19 +149,30 @@ class PlanSlotsNotifier extends AsyncNotifier<List<SlotItem>> {
         servings: servings,
         userId: userId,
         householdId: household?.id,
+        isLeftover: isLeftover,
+        notes: notes,
       );
-      return _repository.getSlotsForPlan(plan.id);
-    });
+      state = AsyncData(await _repository.getSlotsForPlan(plan.id));
+    } catch (_) {
+      state = AsyncData(previous);
+    }
   }
 
   Future<void> removeSlot(String slotId) async {
     final plan = ref.read(weeklyPlanProvider).valueOrNull;
     if (plan == null) return;
 
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    final previous = state.valueOrNull ?? const <SlotItem>[];
+
+    state = AsyncData(
+      previous.where((item) => item.slot.id != slotId).toList(),
+    );
+
+    try {
       await _repository.removeSlot(slotId);
-      return _repository.getSlotsForPlan(plan.id);
-    });
+      state = AsyncData(await _repository.getSlotsForPlan(plan.id));
+    } catch (_) {
+      state = AsyncData(previous);
+    }
   }
 }

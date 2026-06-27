@@ -70,10 +70,12 @@ class PlannerRepository {
     required String planId,
     required int dayOfWeek,
     required String mealType,
-    required String recipeId,
+    String? recipeId,
     required int servings,
     required String userId,
     String? householdId,
+    bool isLeftover = false,
+    String? notes,
   }) async {
     final existingSlots = await getSlotsForPlan(planId);
     final position = existingSlots
@@ -94,6 +96,8 @@ class PlannerRepository {
             recipeId: recipeId,
             servings: servings,
             position: position,
+            isLeftover: isLeftover,
+            notes: notes,
           ),
         )
         .select()
@@ -101,13 +105,15 @@ class PlannerRepository {
 
     final slot = PlanSlot.fromJson(data);
 
-    await _syncShoppingListAdd(
-      slot: slot,
-      recipeId: recipeId,
-      servings: servings,
-      userId: userId,
-      householdId: householdId,
-    );
+    if (recipeId != null && !isLeftover) {
+      await _syncShoppingListAdd(
+        slot: slot,
+        recipeId: recipeId,
+        servings: servings,
+        userId: userId,
+        householdId: householdId,
+      );
+    }
 
     return slot;
   }
@@ -164,7 +170,7 @@ class PlannerRepository {
 
   Future<void> _syncShoppingListAdd({
     required PlanSlot slot,
-    required String recipeId,
+    required String recipeId, // never null when this method is called
     required int servings,
     required String userId,
     String? householdId,
