@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:meal_planner/app.dart';
 import 'package:meal_planner/core/analytics/analytics_service.dart';
 import 'package:meal_planner/core/config/env.dart';
@@ -11,6 +12,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   Future<void> bootstrap() async {
+    await initializeDateFormatting('es', null);
+
     if (Env.hasSupabase) {
       await SupabaseConfig.initialize(
         url: Env.supabaseUrl,

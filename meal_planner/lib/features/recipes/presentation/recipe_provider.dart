@@ -8,6 +8,28 @@ final recipesRepositoryProvider = Provider<RecipesRepository>((ref) {
   return RecipesRepository();
 });
 
+/// Used by the planner recipe picker (F7).
+final recipesProvider =
+    AsyncNotifierProvider<RecipesNotifier, List<Recipe>>(RecipesNotifier.new);
+
+class RecipesNotifier extends AsyncNotifier<List<Recipe>> {
+  RecipesRepository get _repository => ref.read(recipesRepositoryProvider);
+
+  @override
+  Future<List<Recipe>> build() async {
+    return _repository.fetchRecipes();
+  }
+
+  Future<List<Recipe>> search(String query) async {
+    return _repository.fetchRecipes(search: query);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _repository.fetchRecipes());
+  }
+}
+
 class RecipeListFilter {
   const RecipeListFilter({this.search = '', this.tag});
 
@@ -118,6 +140,7 @@ class RecipeFormNotifier extends AutoDisposeFamilyAsyncNotifier<
         ref.invalidate(recipeListProvider);
         ref.invalidate(recipeDetailProvider(current.recipeId!));
         ref.invalidate(recipeTagsProvider);
+        ref.invalidate(recipesProvider);
         state = AsyncData(current.copyWith(isSaving: false));
         return current.recipeId;
       }
@@ -125,6 +148,7 @@ class RecipeFormNotifier extends AutoDisposeFamilyAsyncNotifier<
       final id = await repo.createRecipe(current.data);
       ref.invalidate(recipeListProvider);
       ref.invalidate(recipeTagsProvider);
+      ref.invalidate(recipesProvider);
       state = AsyncData(
         current.copyWith(isSaving: false, recipeId: id),
       );
@@ -148,6 +172,7 @@ class RecipeFormNotifier extends AutoDisposeFamilyAsyncNotifier<
           .deleteRecipe(current.recipeId!);
       ref.invalidate(recipeListProvider);
       ref.invalidate(recipeTagsProvider);
+      ref.invalidate(recipesProvider);
       return true;
     } catch (e) {
       state = AsyncData(
