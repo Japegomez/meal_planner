@@ -62,9 +62,22 @@ workflows:
             --dart-define=SENTRY_DSN=$SENTRY_DSN \
             --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID \
             --dart-define=GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+      - name: Export AAB artifact
+        script: |
+          set -e
+          AAB=$(find "$CM_BUILD_DIR/meal_planner" -path "*/outputs/bundle/release/*.aab" -type f | head -1)
+          if [ -z "$AAB" ]; then
+            echo "ERROR: AAB not found under meal_planner/build"
+            find "$CM_BUILD_DIR" -name "*.aab" -type f || true
+            exit 1
+          fi
+          echo "Found AAB: $AAB"
+          cp "$AAB" "$CM_EXPORT_DIR/app-release.aab"
+          ls -la "$CM_EXPORT_DIR"
     artifacts:
-      - meal_planner/build/**/outputs/**/*.aab
-      - meal_planner/build/**/outputs/**/mapping.txt
+      - $CM_EXPORT_DIR/app-release.aab
+      - $CM_BUILD_DIR/meal_planner/build/app/outputs/bundle/release/*.aab
+      - $CM_BUILD_DIR/meal_planner/build/**/outputs/**/mapping.txt
       - flutter_drive.log
 
   ios-workflow:
@@ -132,7 +145,20 @@ workflows:
             --dart-define=SENTRY_DSN=$SENTRY_DSN \
             --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID \
             --dart-define=GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+      - name: Export IPA artifact
+        script: |
+          set -e
+          IPA=$(find "$CM_BUILD_DIR/meal_planner" -path "*/build/ios/ipa/*.ipa" -type f | head -1)
+          if [ -z "$IPA" ]; then
+            echo "ERROR: IPA not found under meal_planner/build/ios/ipa"
+            find "$CM_BUILD_DIR" -name "*.ipa" -type f || true
+            exit 1
+          fi
+          echo "Found IPA: $IPA"
+          cp "$IPA" "$CM_EXPORT_DIR/app-release.ipa"
+          ls -la "$CM_EXPORT_DIR"
     artifacts:
-      - meal_planner/build/ios/ipa/*.ipa
+      - $CM_EXPORT_DIR/app-release.ipa
+      - $CM_BUILD_DIR/meal_planner/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
