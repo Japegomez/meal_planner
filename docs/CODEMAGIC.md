@@ -11,6 +11,7 @@ Guía de referencia histórica: **[§ Pasos manuales (detallados)](#pasos-manual
 | CI (analyze + test) | GitHub Actions en `develop` / PRs | ✅ |
 | `codemagic.yaml` | Raíz del repo | ✅ |
 | CD (AAB + IPA) | Codemagic en push a `main` | ✅ |
+| Publicación automática Play / TestFlight | Codemagic `publishing` (requiere setup manual) | ⚙️ |
 | Config Firebase | Commiteada en el repo | ✅ |
 | Secrets runtime | Grupos env en Codemagic | ✅ |
 | Firma Android/iOS | Codemagic Code signing | ✅ |
@@ -69,8 +70,8 @@ Valores = los mismos que en tu `dart_defines.json` local.
 
 | Workflow | Trigger | Output |
 |----------|---------|--------|
-| **Android Release** | Push a `main` | `.aab` |
-| **iOS Release** | Push a `main` | `.ipa` |
+| **Android Release** | Push a `main` | `.aab` → **Google Play** (track `internal`, draft) |
+| **iOS Release** | Push a `main` | `.ipa` → **TestFlight** (internal) |
 
 Pipeline: `flutter clean` → `pub get` → `analyze lib test` → `test` → **set build version** → build release.
 
@@ -88,6 +89,71 @@ En CI, el **build number** no viene del `+1` de `pubspec.yaml`: Codemagic lo aut
 - Si ya subiste builds a Play/TestFlight y el contador de Codemagic es menor, sube `BUILD_NUMBER_OFFSET` en `codemagic.yaml` (p. ej. `10` si el último versionCode en Play fue `10`).
 
 En el log del paso **Set build version** verás: `Release version: 1.0.0+42`.
+
+---
+
+## Publicación automática en stores
+
+Tras cada push a `main`, Codemagic **construye y publica**:
+
+| Plataforma | Destino | Config en yaml |
+|------------|---------|----------------|
+| Android | Google Play → track **internal** (borrador) | `publishing.google_play` |
+| iOS | App Store Connect → **TestFlight** | `publishing.app_store_connect` |
+
+> **Primera vez:** Google exige subir el **primer AAB manualmente** en Play Console. Apple recomienda crear la app en App Store Connect antes de automatizar.
+
+### Grupo `google_play` (Codemagic → Environment variables)
+
+| Variable | Valor |
+|----------|--------|
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS` | Contenido completo del JSON de la service account (Secure) |
+
+**Setup Google Cloud + Play Console:**
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → IAM → **Service accounts** → Create.
+2. Keys → Add key → **JSON** → descarga el fichero.
+3. [Play Console](https://play.google.com/console) → **Setup → API access** → vincula el proyecto GCP.
+4. **Users and permissions** → Invite user → email de la service account.
+5. Permisos de la app: **Release to testing tracks** (mínimo para internal).
+
+El grupo debe llamarse exactamente **`google_play`**.
+
+Track por defecto: `internal` (variable `GOOGLE_PLAY_TRACK`). Para producción, cambia a `production` y `submit_as_draft: false` en `codemagic.yaml`.
+
+### Integración App Store Connect (iOS)
+
+1. [App Store Connect](https://appstoreconnect.apple.com/) → **Users and Access → Integrations → App Store Connect API** → Generate key (**App Manager**).
+2. Descarga el `.p8` (solo una vez). Anota **Issuer ID** y **Key ID**.
+3. Codemagic → **Team settings → Integrations → Developer Portal** → Connect.
+4. **API key name:** `meal_planner` ← debe coincidir con `integrations.app_store_connect` en el yaml.
+5. Sube Issuer ID, Key ID y el `.p8`.
+
+### Variable `APP_STORE_APPLE_ID` (iOS)
+
+En App Store Connect → tu app → **App Information** → **Apple ID** (número, p. ej. `6750123456`).
+
+Actualiza en `codemagic.yaml`:
+
+```yaml
+APP_STORE_APPLE_ID: 6750123456
+```
+
+Sin esto, el build number usa `PROJECT_BUILD_NUMBER` (funciona, pero no sincroniza con TestFlight).
+
+### Versionado al publicar
+
+- **Android:** `google-play get-latest-build-number` + 1 (track `internal`). Si no hay historial, usa `PROJECT_BUILD_NUMBER`.
+- **iOS:** `app-store-connect get-latest-app-store-build-number` + 1 si `APP_STORE_APPLE_ID` está configurado.
+
+### Flujo tras merge a `main`
+
+```
+push main → Android Release → AAB → Play (internal, draft)
+         → iOS Release     → IPA → TestFlight (internal, sin beta review)
+```
+
+Revisa el log en **Publishing** al final del build. iOS puede tardar 5–30 min en procesar en App Store Connect (post-processing).
 
 ---
 

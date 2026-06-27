@@ -12,9 +12,11 @@ workflows:
         - supabase
         - sentry
         - google
+        - google_play
       vars:
         PACKAGE_NAME: com.japegomez.meal_planner
-        # Optional: add to last Play Store versionCode if migrating existing releases
+        GOOGLE_PLAY_TRACK: internal
+        # Fallback when Play has no builds yet (first release is manual)
         BUILD_NUMBER_OFFSET: 0
     triggering:
       events:
@@ -47,11 +49,18 @@ workflows:
       - name: Set build version
         script: |
           BUILD_NUMBER_OFFSET="${BUILD_NUMBER_OFFSET:-0}"
-          CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
           APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')
+          LATEST_PLAY=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" --tracks="$GOOGLE_PLAY_TRACK" 2>/dev/null || true)
+          if [ -n "$LATEST_PLAY" ] && [ "$LATEST_PLAY" -gt 0 ] 2>/dev/null; then
+            CM_BUILD_NUM=$(($LATEST_PLAY + 1))
+            echo "Build number from Google Play ($GOOGLE_PLAY_TRACK): $LATEST_PLAY -> $CM_BUILD_NUM"
+          else
+            CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
+            echo "Build number from Codemagic (no Play history): $CM_BUILD_NUM"
+          fi
           echo "APP_VERSION=$APP_VERSION" >> $CM_ENV
           echo "CM_BUILD_NUM=$CM_BUILD_NUM" >> $CM_ENV
-          echo "Release version: $APP_VERSION+$CM_BUILD_NUM (PROJECT_BUILD_NUMBER=$PROJECT_BUILD_NUMBER, offset=$BUILD_NUMBER_OFFSET)"
+          echo "Release version: $APP_VERSION+$CM_BUILD_NUM"
       - name: Build Android App Bundle
         script: |
           flutter build appbundle --release \
@@ -79,12 +88,19 @@ workflows:
       - $CM_BUILD_DIR/meal_planner/build/app/outputs/bundle/release/*.aab
       - $CM_BUILD_DIR/meal_planner/build/**/outputs/**/mapping.txt
       - flutter_drive.log
+    publishing:
+      google_play:
+        credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
+        track: $GOOGLE_PLAY_TRACK
+        submit_as_draft: false
 
   ios-workflow:
     name: iOS Release
     max_build_duration: 60
     instance_type: mac_mini_m2
     working_directory: meal_planner
+    integrations:
+      app_store_connect: meal_planner
     environment:
       flutter: stable
       xcode: latest
@@ -98,6 +114,8 @@ workflows:
         bundle_identifier: com.japegomez.mealPlanner
       vars:
         BUNDLE_ID: com.japegomez.mealPlanner
+        # Numeric Apple ID from App Store Connect → App Information → Apple ID
+        APP_STORE_APPLE_ID: 0
         BUILD_NUMBER_OFFSET: 0
     triggering:
       events:
@@ -126,15 +144,27 @@ workflows:
           flutter test
       - name: Set up code signing settings on Xcode project
         script: |
-          xcode-project use-profiles
+          xcode-project use-profiles --custom-export-options='{"testFlightInternalTestingOnly": true}'
       - name: Set build version
         script: |
           BUILD_NUMBER_OFFSET="${BUILD_NUMBER_OFFSET:-0}"
-          CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
           APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')
+          if [ -n "$APP_STORE_APPLE_ID" ] && [ "$APP_STORE_APPLE_ID" != "0" ]; then
+            LATEST_IOS=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || true)
+            if [ -n "$LATEST_IOS" ] && [ "$LATEST_IOS" -gt 0 ] 2>/dev/null; then
+              CM_BUILD_NUM=$(($LATEST_IOS + 1))
+              echo "Build number from App Store Connect: $LATEST_IOS -> $CM_BUILD_NUM"
+            else
+              CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
+              echo "Build number from Codemagic (no TestFlight history): $CM_BUILD_NUM"
+            fi
+          else
+            CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
+            echo "Build number from Codemagic (set APP_STORE_APPLE_ID for store sync): $CM_BUILD_NUM"
+          fi
           echo "APP_VERSION=$APP_VERSION" >> $CM_ENV
           echo "CM_BUILD_NUM=$CM_BUILD_NUM" >> $CM_ENV
-          echo "Release version: $APP_VERSION+$CM_BUILD_NUM (PROJECT_BUILD_NUMBER=$PROJECT_BUILD_NUMBER, offset=$BUILD_NUMBER_OFFSET)"
+          echo "Release version: $APP_VERSION+$CM_BUILD_NUM"
       - name: Build iOS IPA
         script: |
           flutter build ipa --release \
@@ -162,3 +192,8 @@ workflows:
       - $CM_BUILD_DIR/meal_planner/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
