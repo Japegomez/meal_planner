@@ -2,8 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meal_planner/features/auth/domain/auth_state.dart';
 import 'package:meal_planner/features/auth/presentation/auth_provider.dart';
+import 'package:meal_planner/features/auth/presentation/forgot_password_screen.dart';
 import 'package:meal_planner/features/auth/presentation/login_screen.dart';
+import 'package:meal_planner/features/auth/presentation/register_screen.dart';
+import 'package:meal_planner/features/household/presentation/create_household_screen.dart';
+import 'package:meal_planner/features/household/presentation/household_screen.dart';
+import 'package:meal_planner/features/household/presentation/join_household_screen.dart';
 import 'package:meal_planner/features/planner/presentation/planner_screen.dart';
+import 'package:meal_planner/features/profile/presentation/edit_profile_screen.dart';
+import 'package:meal_planner/features/profile/presentation/profile_screen.dart';
+import 'package:meal_planner/features/recipes/presentation/recipe_detail_screen.dart';
+import 'package:meal_planner/features/recipes/presentation/recipe_form_screen.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_list_screen.dart';
 import 'package:meal_planner/features/shopping/presentation/shopping_list_screen.dart';
 import 'package:meal_planner/router/home_shell.dart';
@@ -37,6 +46,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/auth/login',
         builder: (_, _) => const LoginScreen(),
       ),
+      GoRoute(
+        path: '/auth/register',
+        builder: (_, _) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/auth/forgot-password',
+        builder: (_, _) => const ForgotPasswordScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) =>
             HomeShell(navigationShell: navigationShell),
@@ -54,6 +71,26 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/home/recipes',
                 builder: (_, _) => const RecipeListScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (_, _) => const RecipeFormScreen(),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) => RecipeDetailScreen(
+                      recipeId: state.pathParameters['id']!,
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (_, state) => RecipeFormScreen(
+                          recipeId: state.pathParameters['id'],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -62,6 +99,34 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/home/shopping',
                 builder: (_, _) => const ShoppingListScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home/profile',
+                builder: (_, _) => const ProfileScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (_, _) => const EditProfileScreen(),
+                  ),
+                  GoRoute(
+                    path: 'household',
+                    builder: (_, _) => const HouseholdScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'create',
+                        builder: (_, _) => const CreateHouseholdScreen(),
+                      ),
+                      GoRoute(
+                        path: 'join',
+                        builder: (_, _) => const JoinHouseholdScreen(),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

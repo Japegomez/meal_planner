@@ -1,12 +1,383 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:meal_planner/features/auth/domain/auth_state.dart';
+import 'package:meal_planner/features/auth/presentation/auth_provider.dart';
+import 'package:meal_planner/features/household/domain/household_member_info.dart';
+import 'package:meal_planner/features/household/presentation/household_provider.dart';
 
-class HouseholdScreen extends StatelessWidget {
+class HouseholdScreen extends ConsumerWidget {
   const HouseholdScreen({super.key});
+
+  Future<void> _copyInviteCode(BuildContext context, String code) async {
+    await Clipboard.setData(ClipboardData(text: code));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Código copiado al portapapeles')),
+      );
+    }
+  }
+
+  Future<void> _confirmRegenerateCode(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Regenerar código'),
+        content: const Text(
+          'El código anterior dejará de funcionar. ¿Quieres generar uno nuevo?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Regenerar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref.read(currentHouseholdProvider.notifier).regenerateCode();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Código regenerado')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmKickMember(
+    BuildContext context,
+    WidgetRef ref,
+    HouseholdMemberInfo member,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Expulsar miembro'),
+        content: Text(
+          '¿Expulsar a ${member.username} del hogar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Expulsar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final household = ref.read(currentHouseholdProvider).valueOrNull;
+      await ref
+          .read(currentHouseholdProvider.notifier)
+          .kickMember(member.userId);
+      if (household != null) {
+        ref.invalidate(householdMembersByIdProvider(household.id));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmLeaveHousehold(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Abandonar hogar'),
+        content: const Text(
+          'Perderás acceso al planificador y lista compartidos. ¿Continuar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Abandonar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref.read(currentHouseholdProvider.notifier).leave();
+      if (context.mounted) context.pop();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final householdAsync = ref.watch(currentHouseholdProvider);
+    final household = householdAsync.valueOrNull;
+
+    if (householdAsync.isLoading && household == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Mi hogar')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (household == null) {
+      return _NoHouseholdView(
+        onCreate: () => context.push('/home/profile/household/create'),
+        onJoin: () => context.push('/home/profile/household/join'),
+      );
+    }
+
+    final membersAsync = ref.watch(householdMembersByIdProvider(household.id));
+    final roleAsync = ref.watch(currentUserHouseholdRoleProvider);
+    final isAdmin = roleAsync.valueOrNull == 'admin';
+
+    final authState = ref.watch(authStateProvider);
+    final currentUserId = authState.maybeWhen(
+      data: (value) => value is AuthAuthenticated ? value.user.id : null,
+      orElse: () => null,
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mi hogar'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(currentHouseholdProvider.notifier).refresh();
+          ref.invalidate(householdMembersByIdProvider(household.id));
+          ref.invalidate(currentUserHouseholdRoleProvider);
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            Text(
+              household.name,
+              style: theme.textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Código de invitación',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        household.inviteCode,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          letterSpacing: 4,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Copiar',
+                      onPressed: () =>
+                          _copyInviteCode(context, household.inviteCode),
+                      icon: const Icon(Icons.copy),
+                    ),
+                    if (isAdmin)
+                      IconButton(
+                        tooltip: 'Regenerar',
+                        onPressed: () =>
+                            _confirmRegenerateCode(context, ref),
+                        icon: const Icon(Icons.refresh),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Miembros',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            membersAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Text(
+                error.toString(),
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              data: (members) => Column(
+                children: members
+                    .map(
+                      (member) => _MemberTile(
+                        member: member,
+                        isCurrentUser: member.userId == currentUserId,
+                        canKick: isAdmin &&
+                            member.userId != currentUserId &&
+                            !member.isAdmin,
+                        onKick: () =>
+                            _confirmKickMember(context, ref, member),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 32),
+            OutlinedButton.icon(
+              onPressed: () => _confirmLeaveHousehold(context, ref),
+              icon: const Icon(Icons.exit_to_app),
+              label: const Text('Abandonar hogar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoHouseholdView extends StatelessWidget {
+  const _NoHouseholdView({
+    required this.onCreate,
+    required this.onJoin,
+  });
+
+  final VoidCallback onCreate;
+  final VoidCallback onJoin;
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Hogar compartido — Fase 2')),
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mi hogar'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(
+              Icons.home_outlined,
+              size: 64,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Sin hogar compartido',
+              style: theme.textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'En modo individual usas tu propio planificador y lista de la compra. '
+              'Crea un hogar o únete con un código para compartirlos con otros.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const Spacer(),
+            FilledButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(Icons.add),
+              label: const Text('Crear hogar'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onJoin,
+              icon: const Icon(Icons.group_add_outlined),
+              label: const Text('Unirse con código'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MemberTile extends StatelessWidget {
+  const _MemberTile({
+    required this.member,
+    required this.isCurrentUser,
+    required this.canKick,
+    required this.onKick,
+  });
+
+  final HouseholdMemberInfo member;
+  final bool isCurrentUser;
+  final bool canKick;
+  final VoidCallback onKick;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundImage: member.avatarUrl != null
+              ? CachedNetworkImageProvider(member.avatarUrl!)
+              : null,
+          child: member.avatarUrl == null
+              ? Text(
+                  member.username.isNotEmpty
+                      ? member.username[0].toUpperCase()
+                      : '?',
+                )
+              : null,
+        ),
+        title: Text(
+          isCurrentUser ? '${member.username} (tú)' : member.username,
+        ),
+        subtitle: Text(member.isAdmin ? 'Administrador' : 'Miembro'),
+        trailing: canKick
+            ? IconButton(
+                tooltip: 'Expulsar',
+                onPressed: onKick,
+                icon: Icon(
+                  Icons.person_remove_outlined,
+                  color: theme.colorScheme.error,
+                ),
+              )
+            : null,
+      ),
     );
   }
 }

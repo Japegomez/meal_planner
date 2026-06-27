@@ -9,7 +9,7 @@
 | Project ref | `hxtynisikjpwlvpdgdbt` |
 | URL | `https://hxtynisikjpwlvpdgdbt.supabase.co` |
 
-Migraciones `001`–`005` aplicadas (tablas, RLS, índices, Storage, Realtime).
+Migraciones `001`–`007` aplicadas (tablas, RLS, RPCs hogar, buckets Storage, Realtime).
 
 ## Variables para Flutter
 
@@ -36,13 +36,13 @@ supabase link --project-ref hxtynisikjpwlvpdgdbt
 supabase db push
 ```
 
-O aplica cada archivo en `migrations/` desde el SQL Editor, en orden `001` → `005`.
+O aplica cada archivo en `migrations/` desde el SQL Editor, en orden `001` → `007`.
 
 ## Generar tipos Dart (Supadart)
 
 La CLI oficial de Supabase ya no genera Dart. Usamos [Supadart](https://github.com/mmvergara/supadart).
 
-**Requisitos:** migraciones `001`–`005` aplicadas (ya están en el proyecto remoto).
+**Requisitos:** migraciones `001`–`007` aplicadas (ya están en el proyecto remoto).
 
 ```bash
 cd meal_planner
@@ -65,10 +65,8 @@ dart pub get && dart run supadart
 
 ## Storage y Realtime
 
-La migración `005_shopping.sql` configura:
-
-- Bucket privado `recipe-photos`
-- Realtime en `plan_slots` y `shopping_items`
+- `005_shopping.sql`: bucket `recipe-photos` + Realtime en `plan_slots` y `shopping_items`
+- `007_storage_avatars.sql`: bucket privado `avatars` (2 MB, jpeg/png/webp) + RLS para miembros del hogar
 
 ## Pendiente (Fase 1 — plan §3d en adelante)
 

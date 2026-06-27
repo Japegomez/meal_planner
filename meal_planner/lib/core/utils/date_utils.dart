@@ -11,3 +11,9 @@ String formatWeekRange(DateTime weekStart) {
   final yearFmt = DateFormat('d MMM yyyy', 'es');
   return '${dayFmt.format(weekStart)} – ${yearFmt.format(weekEnd)}';
 }
+
+String formatDayHeader(DateTime date) {
+  final formatted = DateFormat('EEEE d', 'es').format(date);
+  if (formatted.isEmpty) return formatted;
+  return formatted[0].toUpperCase() + formatted.substring(1);
+}

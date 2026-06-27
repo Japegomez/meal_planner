@@ -1,0 +1,117 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:meal_planner/core/supabase/models/shopping_item.dart';
+import 'package:meal_planner/features/shopping/presentation/widgets/add_edit_item_sheet.dart';
+
+class ShoppingItemTile extends StatelessWidget {
+  const ShoppingItemTile({
+    required this.item,
+    required this.onToggle,
+    required this.onEdit,
+    required this.onDelete,
+    super.key,
+  });
+
+  final ShoppingItem item;
+  final ValueChanged<bool> onToggle;
+  final Future<void> Function(Map<String, dynamic> data) onEdit;
+  final VoidCallback onDelete;
+
+  String get _label {
+    final parts = <String>[];
+    if (item.quantity != null) {
+      parts.add(_formatQuantity(item.quantity!));
+    }
+    if (item.unit != null && item.unit!.isNotEmpty) {
+      parts.add(item.unit!);
+    }
+    parts.add(item.name);
+    return parts.join(' ');
+  }
+
+  String _formatQuantity(num quantity) {
+    if (quantity == quantity.roundToDouble()) {
+      return quantity.round().toString();
+    }
+    return quantity.toString();
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar ítem'),
+        content: Text('¿Eliminar «${item.name}» de la lista?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      onDelete();
+    }
+  }
+
+  Future<void> _openEdit(BuildContext context) async {
+    final data = await AddEditItemSheet.show(context, item: item);
+    if (data != null) {
+      await onEdit(data);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
+          decoration: item.isChecked ? TextDecoration.lineThrough : null,
+          color: item.isChecked ? colorScheme.outline : null,
+        );
+
+    return Slidable(
+      key: ValueKey(item.id),
+      startActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        children: [
+          SlidableAction(
+            onPressed: (_) => _openEdit(context),
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+            icon: Icons.edit_outlined,
+            label: 'Editar',
+          ),
+        ],
+      ),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        children: [
+          SlidableAction(
+            onPressed: (_) => _confirmDelete(context),
+            backgroundColor: colorScheme.error,
+            foregroundColor: colorScheme.onError,
+            icon: Icons.delete_outline,
+            label: 'Eliminar',
+          ),
+        ],
+      ),
+      child: ListTile(
+        leading: Checkbox(
+          value: item.isChecked,
+          onChanged: (value) {
+            if (value != null) onToggle(value);
+          },
+        ),
+        title: Text(_label, style: textStyle),
+        onTap: () => onToggle(!item.isChecked),
+        onLongPress: () => _openEdit(context),
+      ),
+    );
+  }
+}

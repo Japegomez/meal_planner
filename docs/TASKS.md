@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 26/06/2026 — **Fase 1 completada** ✅
+> Actualizado: 27/06/2026 — **Fase 5 completada** (lista de la compra F9–F12 en cliente; siguiente: publicación en stores / Fase 6 red social)
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -10,10 +10,10 @@
 | Fase                    | Estado     | Descripción                                                                   |
 | ----------------------- | ---------- | ----------------------------------------------------------------------------- |
 | Fase 1 — Setup          | Completada | Flutter, Supabase, OAuth, CI/CD Codemagic, builds Android + iOS verificados  |
-| Fase 2 — Auth y perfiles| Pendiente  | Email/contraseña, OAuth Google/Apple, hogar compartido                       |
-| Fase 3 — Recetario      | Pendiente | CRUD recetas, ingredientes, pasos, fotos, nutrición                          |
-| Fase 4 — Planificador   | Pendiente | Vista semanal, slots, escalado de raciones, Realtime                         |
-| Fase 5 — Lista compra   | Pendiente | Generación automática, agrupación, exportación WhatsApp                      |
+| Fase 2 — Auth y perfiles| Completada | F1 auth, F2 perfil y F3 hogar en UI; modo individual en planificador y lista |
+| Fase 3 — Recetario      | Completada | CRUD recetas, ingredientes, pasos, fotos, nutrición (F4–F5)                  |
+| Fase 4 — Planificador   | Completada | Vista semanal vertical, slots, drag-and-drop, sobras, texto libre, Realtime |
+| Fase 5 — Lista compra   | Completada | Vista agrupada, CRUD, consolidación al añadir, exportación, Realtime hogar   |
 | Fase 6 — Red social     | Backlog  | Recetas públicas, descubrimiento, valoraciones, seguimiento                  |
 
 ---
@@ -62,7 +62,13 @@ flutter devices
 flutter run -d emulator-5554 --dart-define-from-file=dart_defines.json
 ```
 
-Alternativa: flutter run -d chrome --dart-define-from-file=dart_defines.json
+Alternativa web (requiere **hot restart** tras cambios en providers o `index.html`):
+
+```powershell
+flutter run -d web-server --web-port=8080 --dart-define-from-file=dart_defines.json
+```
+
+Web: `web/index.html` incluye `passkeys_bundle.js` (dependencia transitiva de `supabase_flutter` / WebAuthn).
 
 Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core/config/env.dart` en compile time.
 
@@ -151,50 +157,65 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 ### Migraciones de base de datos
 
 - [x] Aplicar migraciones `001`–`005` en Supabase remoto y verificar RLS
-- [ ] Crear RPC `create_household(name text)` → devuelve el hogar con `invite_code` generado
-- [ ] Crear RPC `join_household(code text)` → valida código e inserta en `household_members`
-- [ ] Crear RPC `regenerate_invite_code(household_id uuid)` → solo admin del hogar
+- [x] Crear RPC `create_household(name text)` → devuelve el hogar con `invite_code` generado
+  - Migración `006_household_rpcs.sql`; aplicada en remoto (27/06/2026)
+- [x] Crear RPC `join_household(code text)` → valida código e inserta en `household_members`
+- [x] Crear RPC `regenerate_invite_code(household_id uuid)` → solo admin del hogar
+- [x] Migración `007_storage_avatars.sql`: bucket `avatars` + RLS perfiles/avatares entre miembros del hogar
+  - Aplicada en remoto (27/06/2026)
 
 ### F1 - Autenticación
 
-- [ ] Instalar y configurar cliente Supabase en Flutter (`lib/core/supabase/supabase_client.dart`)
-- [ ] Pantalla de login (email + contraseña)
-- [ ] Pantalla de registro (email + contraseña + nombre de usuario)
-- [ ] Pantalla de recuperación de contraseña (envío de email)
-- [ ] Login con Google nativo (`google_sign_in` + `signInWithIdToken` vía Supabase)
+- [x] Instalar y configurar cliente Supabase en Flutter (`lib/core/supabase/supabase_client.dart`)
+  - PKCE + `SecureLocalStorage` / `SecureGotrueAsyncStorage` (no SharedPreferences)
+- [x] Pantalla de login (email + contraseña)
+- [x] Pantalla de registro (email + contraseña + nombre de usuario)
+  - `register_screen.dart`; aviso de confirmación por email
+- [x] Pantalla de recuperación de contraseña (envío de email)
+  - `forgot_password_screen.dart`
+- [x] Login con Google nativo (`google_sign_in` + `signInWithIdToken` vía Supabase)
   - Google Cloud: 3 clientes OAuth (Web, Android con SHA-1, iOS)
   - Supabase: Client ID + Secret del cliente Web; **Skip nonce check** activo
   - Android: `serverClientId` = Web Client ID
   - iOS: `clientId` = iOS Client ID; URL scheme invertido en `Info.plist`
   - Variables: `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` en `--dart-define` / Codemagic
-- [ ] Login con Apple (Sign in with Apple; paquete `sign_in_with_apple`)
+- [x] Login con Apple (Sign in with Apple; paquete `sign_in_with_apple`)
   - Configurar entitlement `com.apple.developer.applesignin` en Xcode
   - Apple Developer: App ID con Sign In with Apple activo
   - Supabase: proveedor Apple con Client ID `com.tuapp.mealplanner`
-- [ ] Persistencia de sesión entre cierres de la app (`supabase_flutter` + `SharedPreferences`)
-- [ ] Redirección automática: autenticado → `/home/planner`, no autenticado → `/auth/login`
-  - Guard en `AppRouter` usando `AuthNotifier` (Riverpod)
-- [ ] Creación automática de perfil al registrarse por primera vez (trigger o lógica en cliente)
-- [ ] Cerrar sesión desde ajustes (con confirmación modal)
+- [x] Persistencia de sesión entre cierres de la app (`supabase_flutter` + `flutter_secure_storage`)
+- [x] Redirección automática: autenticado → `/home/planner`, no autenticado → `/auth/login`
+  - Guard en `AppRouter` con `authStateProvider` (Riverpod)
+- [x] Creación automática de perfil al registrarse por primera vez (trigger o lógica en cliente)
+  - Trigger `handle_new_user` en `001_profiles.sql`
+- [x] Cerrar sesión desde perfil (con confirmación modal)
+  - `profile_screen.dart` en tab Perfil (`/home/profile`)
 
 ### F2 - Perfil de usuario
 
-- [ ] Pantalla de perfil (nombre, avatar, hogar actual)
-- [ ] Pantalla de edición de perfil (nombre de usuario, avatar)
-- [ ] Subida de avatar a Supabase Storage (bucket `avatars`; compresión antes de subir)
+- [x] Pantalla de perfil (nombre, avatar, hogar actual)
+  - `profile_screen.dart`; tab Perfil `/home/profile`
+- [x] Pantalla de edición de perfil (nombre de usuario, avatar)
+  - `edit_profile_screen.dart` → `/home/profile/edit`
+- [x] Subida de avatar a Supabase Storage (bucket `avatars`; compresión antes de subir)
+  - `ProfileRepository.uploadAvatar`; path `{userId}/avatar.jpg`; URL firmada al leer
   - Paquete `image_picker` para seleccionar foto de galería o cámara
 
 ### F3 - Hogar compartido
 
-- [ ] Pantalla de gestión del hogar (crear o unirse)
-- [ ] Crear hogar: formulario con nombre → llamada a RPC `create_household`
-- [ ] Mostrar código de invitación del hogar (copiable al portapapeles)
-- [ ] Unirse a hogar: input de código de 6 caracteres → RPC `join_household`
-- [ ] Regenerar código de invitación (solo admin del hogar)
-- [ ] Lista de miembros del hogar con rol (admin / miembro)
-- [ ] Expulsar miembro del hogar (solo admin, con confirmación modal)
-- [ ] Abandonar hogar (con confirmación modal)
-- [ ] Lógica de modo individual: si el usuario no tiene hogar, usa su propio planificador y lista
+- [x] Pantalla de gestión del hogar (crear o unirse)
+  - `household_screen.dart` → `/home/profile/household`
+- [x] Crear hogar: formulario con nombre → llamada a RPC `create_household`
+  - `create_household_screen.dart`
+- [x] Mostrar código de invitación del hogar (copiable al portapapeles)
+- [x] Unirse a hogar: input de código de 6 caracteres → RPC `join_household`
+  - `join_household_screen.dart`
+- [x] Regenerar código de invitación (solo admin del hogar)
+- [x] Lista de miembros del hogar con rol (admin / miembro)
+- [x] Expulsar miembro del hogar (solo admin, con confirmación modal)
+- [x] Abandonar hogar (con confirmación modal)
+- [x] Lógica de modo individual: si el usuario no tiene hogar, usa su propio planificador y lista
+  - `weekly_plans` / `shopping_lists` por `user_id` en `PlannerRepository` y `ShoppingRepository`
 
 ---
 
@@ -202,34 +223,42 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### F4 - CRUD de recetas
 
-- [ ] Pantalla de lista del recetario (cards con foto, nombre y tags)
-- [ ] Buscador de recetas por nombre
-- [ ] Filtro de recetas por etiqueta
-- [ ] Pantalla de detalle de receta (todos los campos, ingredientes, pasos, nutrición)
-- [ ] Pantalla/formulario de creación de receta
-  - [ ] Campo: nombre (obligatorio)
-  - [ ] Campo: foto (opcional; `image_picker` + subida a Supabase Storage)
-  - [ ] Campo: raciones (obligatorio)
-  - [ ] Campo: tiempo de preparación (minutos, opcional)
-  - [ ] Campo: tiempo de cocción (minutos, opcional)
-  - [ ] Campo: etiquetas (chips seleccionables + opción de escribir etiqueta libre)
-  - [ ] Lista de ingredientes con reordenación (`flutter_slidable` / drag-to-reorder)
-  - [ ] Lista de pasos de elaboración con reordenación
-  - [ ] Sección de información nutricional (calorías, proteínas, carbohidratos, grasas, fibra)
-- [ ] Pantalla/formulario de edición de receta (misma UI que creación)
-- [ ] Eliminar receta (con confirmación modal; los slots que la referencian quedan vacíos)
+- [x] Pantalla de lista del recetario (cards con foto, nombre y tags)
+  - `recipe_list_screen.dart`; rutas anidadas en rama `/home/recipes`
+- [x] Buscador de recetas por nombre
+  - Debounce 300 ms; estado vacío distinto si hay filtro activo sin resultados
+- [x] Filtro de recetas por etiqueta
+  - Chips horizontales con tags del usuario
+- [x] Pantalla de detalle de receta (todos los campos, ingredientes, pasos, nutrición)
+  - `recipe_detail_screen.dart` → `/home/recipes/:id`
+- [x] Pantalla/formulario de creación de receta
+  - [x] Campo: nombre (obligatorio)
+  - [x] Campo: foto (opcional; `image_picker` + subida a Supabase Storage bucket `recipe-photos`)
+  - [x] Campo: raciones (obligatorio)
+  - [x] Campo: tiempo de preparación (minutos, opcional)
+  - [x] Campo: tiempo de cocción (minutos, opcional)
+  - [x] Campo: etiquetas (chips seleccionables + opción de escribir etiqueta libre)
+  - [x] Lista de ingredientes con reordenación (`ReorderableListView`)
+  - [x] Lista de pasos de elaboración con reordenación
+  - [x] Sección de información nutricional (calorías, proteínas, carbohidratos, grasas, fibra)
+  - `recipe_form_screen.dart` → `/home/recipes/new`
+- [x] Pantalla/formulario de edición de receta (misma UI que creación)
+  - `/home/recipes/:id/edit`
+- [x] Eliminar receta (con confirmación modal; los slots que la referencian quedan vacíos)
+  - `ON DELETE SET NULL` en `plan_slots.recipe_id`
 
 ### F5 - Ingredientes
 
-- [ ] Componente `IngredientRow`: nombre, cantidad, unidad, categoría
-- [ ] Selector de unidad (lista predefinida + campo libre):
+- [x] Componente `IngredientRow`: nombre, cantidad, unidad, categoría
+  - `widgets/ingredient_row.dart`
+- [x] Selector de unidad (lista predefinida + campo libre):
   - Unidades de peso: `g`, `kg`
   - Unidades de volumen: `ml`, `l`
   - Unidades de conteo: `unidad`, `unidades`
   - Unidades relativas: `pizca`, `cucharadita`, `cucharada`, `vaso`, `taza`, `puñado`
-- [ ] Selector de categoría de ingrediente:
+- [x] Selector de categoría de ingrediente:
   - `Carnes y pescados`, `Verduras`, `Frutas`, `Lácteos`, `Cereales`, `Legumbres`, `Especias`, `Otros`
-- [ ] Añadir/eliminar ingrediente desde el formulario de receta
+- [x] Añadir/eliminar ingrediente desde el formulario de receta
 
 ---
 
@@ -237,30 +266,38 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### Migraciones de base de datos
 
-- [ ] RPC o función `get_or_create_weekly_plan(week_start date)` → devuelve el plan de esa semana (crea si no existe)
+- [x] RPC `get_or_create_weekly_plan(week_start date)` → devuelve el plan de esa semana (crea si no existe)
+  - Migración `008_planner_rpc.sql`; el cliente implementa upsert equivalente en `PlannerRepository.getOrCreateWeeklyPlan`
+- [x] Migración `009_plan_slots_extras.sql`: columnas `is_leftover` (boolean) y `notes` (text) en `plan_slots`
+  - Aplicada en remoto (27/06/2026)
 
 ### F6 - Vista semanal
 
-- [ ] Pantalla del planificador: grid 7 columnas (lunes–domingo) × 3 filas (desayuno, comida, cena)
-- [ ] Navegación entre semanas (flechas anterior / siguiente; etiqueta con rango de fechas)
-- [ ] Indicador visual de semana actual
-- [ ] Slot vacío: botón `+` para añadir receta
-- [ ] Slot con receta(s): muestra nombre(s) de las recetas asignadas
-- [ ] Slot con varias recetas: scroll horizontal o lista expandible dentro del slot
-- [ ] Desde el planificador: pulsar una receta de un slot → navegar a detalle de receta
+- [x] Pantalla del planificador: **layout vertical móvil** (lista de días con desayuno/comida/cena apilados; sustituye el grid 7×3 del diseño inicial)
+- [x] Panel lateral deslizable con recetario (buscador + tarjetas arrastrables)
+- [x] Drag-and-drop de recetas desde el panel al planificador; autoscroll al acercarse a los bordes
+- [x] Navegación entre semanas (flechas anterior / siguiente; etiqueta con rango de fechas)
+- [x] Indicador visual de semana actual
+- [x] Slot vacío: pulsar o soltar receta para añadir
+- [x] Slot con receta(s): muestra nombre(s) con chips de color según tipo (receta / sobras / texto libre)
+- [x] Slot con varias recetas: lista vertical con botón «Añadir»
+- [x] Desde el planificador: pulsar una receta de un slot → navegar a detalle de receta
 
 ### F7 - Gestión de slots
 
-- [ ] Modal/pantalla de selección de receta para un slot (lista del recetario con buscador)
-- [ ] Al seleccionar receta: input para ajustar el número de raciones (por defecto las de la receta)
-- [ ] Confirmar asignación: inserta fila en `plan_slots` y actualiza la lista de la compra
-- [ ] Eliminar receta concreta de un slot (swipe o botón ✕; no afecta a otras recetas del mismo slot)
-  - Al eliminar: restar ingredientes generados por esa asignación de la lista de la compra
+- [x] Modal/pantalla de selección de receta para un slot (lista del recetario con buscador)
+- [x] Botón «Añadir texto libre» para entradas sin receta (nombre + raciones; no va a lista de la compra)
+- [x] Al seleccionar receta (tap o drag): diálogo de raciones con stepper **− / número / +** y checkbox **Son sobras** (omite ingredientes en lista de la compra)
+  - `servings_dialog.dart` → `_ServingsStepper`
+- [x] Confirmar asignación: inserta fila en `plan_slots` y sincroniza ingredientes en `shopping_items` (si hay receta y no es sobra)
+- [x] Actualización optimista de la UI (sin recarga completa al añadir/quitar)
+- [x] Eliminar comida concreta de un slot (botón ✕ + confirmación; no afecta a otras del mismo slot)
+  - Al eliminar: borra `shopping_items` vinculados por `plan_slot_id`
 
 ### F8 - Realtime (hogar)
 
-- [ ] Suscripción Supabase Realtime a cambios en `plan_slots` del plan activo del hogar
-- [ ] Refrescar UI del planificador al recibir cambios de otros miembros del hogar
+- [x] Suscripción Supabase Realtime a cambios en `plan_slots` del plan activo
+- [x] Refrescar UI del planificador al recibir cambios de otros miembros del hogar
 
 ---
 
@@ -268,33 +305,39 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### F9 - Vista y gestión de la lista
 
-- [ ] Pantalla de lista de la compra agrupada por categoría de ingrediente
-- [ ] Ítem de lista: nombre, cantidad, unidad, categoría, estado (comprado / pendiente)
-- [ ] Ítem marcado como comprado: aparece tachado y se colapsa al final de su categoría
-- [ ] Marcar/desmarcar ítem comprado
-- [ ] Añadir ítem manualmente (modal con campos: nombre, cantidad, unidad, categoría)
-- [ ] Editar ítem (swipe para editar o tap en el ítem)
-- [ ] Eliminar ítem individual (swipe + confirmación)
-- [ ] Botón «Limpiar lista» con confirmación modal (elimina todos los ítems)
+- [x] Pantalla de lista de la compra agrupada por categoría de ingrediente
+  - `shopping_list_screen.dart`; agrupación en `groupShoppingItemsByCategory`
+- [x] Ítem de lista: nombre, cantidad, unidad, categoría, estado (comprado / pendiente)
+  - `shopping_item_tile.dart`
+- [x] Ítem marcado como comprado: aparece tachado y se colapsa al final de su categoría
+- [x] Marcar/desmarcar ítem comprado
+- [x] Añadir ítem manualmente (modal con campos: nombre, cantidad, unidad, categoría)
+  - `add_edit_item_sheet.dart`
+- [x] Editar ítem (swipe para editar o tap largo en el ítem)
+- [x] Eliminar ítem individual (swipe + confirmación)
+- [x] Botón «Limpiar lista» con confirmación modal (elimina todos los ítems)
 
 ### F10 - Automatización desde el planificador
 
-- [ ] Al añadir receta al planificador: insertar sus ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
-- [ ] Consolidación: si ya existe un ítem con el mismo nombre y unidad, sumar la cantidad en lugar de duplicar
-- [ ] Al eliminar receta del planificador: restar la cantidad aportada por esa asignación (por `plan_slot_id`)
-  - Si la cantidad resultante es ≤ 0, eliminar el ítem
+- [x] Al añadir receta al planificador: insertar sus ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
+  - Omitido si `is_leftover = true` o si el slot es texto libre (`recipe_id` null)
+- [x] Consolidación: si ya existe un ítem con el mismo nombre y unidad, sumar la cantidad en lugar de duplicar
+  - `_syncShoppingListAdd` en `PlannerRepository`; match case-insensitive por nombre
+- [x] Al eliminar receta del planificador: borrar ítems por `plan_slot_id`
+  - Pendiente: restar cantidad en lugar de borrar cuando haya consolidación
 
 ### F11 - Exportación
 
-- [ ] Botón «Compartir lista» en la pantalla de lista de la compra
-- [ ] Generar texto plano con los ítems agrupados por categoría
+- [x] Botón «Compartir lista» en la pantalla de lista de la compra
+- [x] Generar texto plano con los ítems agrupados por categoría
   - Formato: `• 500 g Pechuga de pollo`, `• 1 Pimiento rojo`, etc.
-- [ ] Abrir diálogo de compartir del sistema (paquete `share_plus`): compatible con WhatsApp y otras apps
+- [x] Abrir diálogo de compartir del sistema (paquete `share_plus`): compatible con WhatsApp y otras apps
 
 ### F12 - Realtime (hogar)
 
-- [ ] Suscripción Supabase Realtime a cambios en `shopping_items` de la lista activa del hogar
-- [ ] Refrescar UI de la lista al recibir cambios de otros miembros del hogar
+- [x] Suscripción Supabase Realtime a cambios en `shopping_items` de la lista activa del hogar
+  - `ShoppingItemsNotifier` → canal `shopping_items:{listId}`
+- [x] Refrescar UI de la lista al recibir cambios de otros miembros del hogar
 
 ---
 

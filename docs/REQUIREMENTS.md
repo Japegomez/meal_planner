@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.2 — Fase 1 completada (infraestructura)
+> **Versión:** 0.7 — Fase 5 completada (lista de la compra F9–F12 en cliente)
 > **Fecha:** Junio 2026
-> **Estado:** Fase 1 cerrada; desarrollo activo en Fase 2
+> **Estado:** F1–F5 (auth, perfil, hogar, recetario, planificador, lista de la compra) en cliente; siguiente hito: publicación en stores y Fase 6 (red social)
 
 ---
 
@@ -67,8 +67,10 @@ En una fase posterior se añadirá una red social para descubrir y compartir rec
 **RF-AUTH-04** El usuario puede iniciar sesión con **Google** (OAuth 2.0 vía Supabase, disponible en iOS y Android).  
 **RF-AUTH-05** El usuario puede iniciar sesión con **Apple** (*Sign in with Apple*, obligatorio en iOS cuando se ofrece cualquier otro proveedor OAuth, según las App Store Review Guidelines).  
 **RF-AUTH-06** Al autenticarse por primera vez (cualquier método) se crea automáticamente un perfil con nombre de usuario y avatar opcional.  
-**RF-AUTH-07** El usuario puede editar su nombre de usuario y avatar desde ajustes.  
+**RF-AUTH-07** El usuario puede editar su nombre de usuario y avatar desde la pantalla de perfil (`/home/profile/edit`).  
 **RF-AUTH-08** El usuario puede cerrar sesión.  
+
+> **Nota de implementación — avatares (migración `007_storage_avatars`):** bucket privado `avatars` con path `{user_id}/avatar.jpg`. La columna `profiles.avatar_url` almacena el path; la app resuelve URL firmada al cargar. RLS permite a miembros del mismo hogar leer perfiles y avatares ajenos (lista de miembros).
 
 > **Nota de implementación — Google (nativo):** Flutter usa `google_sign_in` para el flujo nativo del SDK de Google y `supabase_flutter` recibe la sesión con `signInWithIdToken`. En Google Cloud se crean **3 clientes OAuth** (Web, Android, iOS). Supabase Auth se configura con el Client ID + Secret del cliente **Web** y **Skip nonce check** activado (iOS). Android requiere SHA-1 del keystore debug/release en el cliente OAuth Android. **No** se usa `signInWithOAuth` ni deep links para Google.
 >
@@ -84,6 +86,10 @@ Un **hogar** es un espacio compartido que agrupa un planificador semanal y una l
 **RF-HH-02** El sistema genera un **código de invitación** único (alfanumérico, 6 caracteres) para cada hogar.  
 **RF-HH-03** Cualquier usuario registrado puede unirse a un hogar introduciendo el código de invitación.  
 **RF-HH-04** El administrador puede revocar el código de invitación y generar uno nuevo.  
+> **Nota de implementación — RPCs (migración `006_household_rpcs`):** `create_household(name)`, `join_household(code)` y `regenerate_invite_code(household_id)` expuestas como funciones `SECURITY DEFINER` con `GRANT` a `authenticated`. Código de invitación alfanumérico de 6 caracteres (sin caracteres ambiguos).
+>
+> **UI Flutter:** `HouseholdRepository` + `currentHouseholdProvider`; miembros vía `householdMembersByIdProvider(householdId)` (family, evita dependencias circulares en Riverpod).
+
 **RF-HH-05** El administrador puede expulsar a un miembro del hogar.  
 **RF-HH-06** Un usuario puede abandonar el hogar.  
 **RF-HH-07** Todos los miembros del hogar ven y editan el mismo planificador y la misma lista de la compra en tiempo real.  
@@ -138,17 +144,21 @@ El **recetario** es la colección personal de recetas de cada usuario. Las recet
 
 ### 3.4 Planificador semanal
 
-El planificador muestra una semana con 7 días × 3 slots: **Desayuno**, **Comida** y **Cena**.
+El planificador muestra una semana con 7 días × 3 slots: **Desayuno**, **Comida** y **Cena**. En móvil la UI es una **lista vertical por día** con un panel lateral deslizable del recetario (buscador + drag-and-drop).
 
 **RF-PLAN-01** La semana comienza en lunes.  
 **RF-PLAN-02** El usuario puede navegar hacia semanas pasadas y futuras con flechas de paginación.  
-**RF-PLAN-03** Cada slot puede contener **una o varias recetas** (p. ej. desayuno con tostadas + zumo).  
-**RF-PLAN-04** Para asignar una receta a un slot, el usuario la selecciona del recetario mediante un buscador/lista.  
-**RF-PLAN-05** Al asignar una receta, el usuario puede ajustar el **número de raciones** para esa ocasión (por defecto las raciones de la receta). Los ingredientes de la lista de la compra se escalan proporcionalmente.  
-**RF-PLAN-06** El usuario puede eliminar una receta concreta de un slot sin afectar al resto de recetas del mismo slot.  
-**RF-PLAN-07** Al eliminar una receta del planificador, sus ingredientes (solo los generados por esa asignación) se restan automáticamente de la lista de la compra.  
-**RF-PLAN-08** Desde el planificador, el usuario puede pulsar la receta de un slot para ver su detalle.  
+**RF-PLAN-03** Cada slot puede contener **una o varias comidas** (recetas del recetario o entradas de texto libre).  
+**RF-PLAN-04** Para asignar una receta a un slot, el usuario la selecciona del recetario (modal con buscador) o la arrastra desde el panel lateral.  
+**RF-PLAN-05** Al asignar una receta, el usuario puede ajustar el **número de raciones** para esa ocasión (por defecto las raciones de la receta) mediante un stepper **− / número / +** en el diálogo de confirmación. Los ingredientes de la lista de la compra se escalan proporcionalmente.  
+**RF-PLAN-06** El usuario puede eliminar una comida concreta de un slot sin afectar al resto del mismo slot.  
+**RF-PLAN-07** Al eliminar una receta del planificador, sus ingredientes generados por esa asignación se eliminan de la lista de la compra (por `plan_slot_id`).  
+**RF-PLAN-08** Desde el planificador, el usuario puede pulsar la receta de un slot para ver su detalle. *(Pendiente en cliente.)*  
 **RF-PLAN-09** En modo hogar, todos los miembros ven y modifican el mismo planificador en tiempo real (Supabase Realtime).  
+**RF-PLAN-10** Al asignar una receta, el usuario puede marcar **Son sobras**: los ingredientes **no** se añaden a la lista de la compra.  
+**RF-PLAN-11** El usuario puede añadir una **entrada de texto libre** a un slot (sin receta asociada): se guarda en `plan_slots.notes`, no genera ítems en la lista de la compra y se distingue visualmente de recetas y sobras.
+
+> **Nota de implementación — slots (migración `009_plan_slots_extras`):** `plan_slots.is_leftover boolean DEFAULT false`; `plan_slots.notes text` (nullable). Chips en UI: receta normal (`primaryContainer`), sobras (`tertiaryContainer` + icono), texto libre (naranja suave + icono).
 
 ---
 
@@ -166,7 +176,9 @@ La lista de la compra está asociada al hogar (o al usuario individual) y **no e
 **RF-SHOP-08** El usuario puede eliminar un ítem individual de la lista.  
 **RF-SHOP-09** El usuario puede **limpiar toda la lista** con un botón de confirmación.  
 **RF-SHOP-10** El usuario puede **exportar la lista** como texto plano y compartirla por WhatsApp u otras apps del sistema (usando el `share_plus` de Flutter).  
-**RF-SHOP-11** En modo hogar, todos los miembros ven la misma lista en tiempo real y pueden marcar/desmarcar ítems.  
+**RF-SHOP-11** En modo hogar, todos los miembros ven la misma lista en tiempo real y pueden marcar/desmarcar ítems.
+
+> **Nota de implementación — lista de la compra:** `ShoppingRepository` + `ShoppingItemsNotifier` (`shopping_provider.dart`). Modelos Supadart en `core/supabase/models/`. Realtime: canal `shopping_items:{listId}` filtrado por `shopping_list_id`. Consolidación al añadir desde planificador en `PlannerRepository._syncShoppingListAdd` (nombre case-insensitive + misma unidad). Pendiente: restar cantidad al eliminar slot cuando el ítem esté consolidado.  
 
 ---
 
@@ -273,7 +285,9 @@ CREATE TABLE plan_slots (
   meal_type    text NOT NULL,  -- 'breakfast' | 'lunch' | 'dinner'
   recipe_id    uuid REFERENCES recipes(id) ON DELETE SET NULL,
   servings     int NOT NULL DEFAULT 1,  -- raciones ajustadas al planificar
-  position     int NOT NULL DEFAULT 0   -- orden de las recetas dentro del slot
+  position     int NOT NULL DEFAULT 0,  -- orden de las recetas dentro del slot
+  is_leftover  boolean NOT NULL DEFAULT false,  -- migración 009: omite sync con lista de la compra
+  notes        text                            -- migración 009: entrada de texto libre (sin recipe_id)
   -- Sin UNIQUE(plan_id, day_of_week, meal_type): un slot admite múltiples recetas
 );
 
@@ -339,14 +353,18 @@ lib/
 │
 ├── features/
 │   ├── auth/
-│   │   ├── data/              # supabase_auth_repository.dart
-│   │   ├── domain/            # auth_state.dart, user_model.dart
-│   │   └── presentation/      # login_screen, register_screen, providers
+│   │   ├── data/              # auth_repository.dart
+│   │   ├── domain/            # auth_state.dart, auth_exception.dart
+│   │   └── presentation/      # login, register, forgot_password, auth_provider
+│   │
+│   ├── profile/
+│   │   ├── data/              # profile_repository.dart
+│   │   └── presentation/      # profile_screen, edit_profile_screen, profile_provider
 │   │
 │   ├── household/
-│   │   ├── data/
-│   │   ├── domain/
-│   │   └── presentation/      # create_household, join_household, members_screen
+│   │   ├── data/              # household_repository.dart
+│   │   ├── domain/            # household_member_info.dart
+│   │   └── presentation/      # household, create, join screens + household_provider
 │   │
 │   ├── recipes/
 │   │   ├── data/              # recipes_repository.dart
@@ -355,13 +373,12 @@ lib/
 │   │
 │   ├── planner/
 │   │   ├── data/              # planner_repository.dart
-│   │   ├── domain/            # weekly_plan_model.dart, plan_slot_model.dart
-│   │   └── presentation/      # planner_screen, slot_picker, week_navigation
+│   │   ├── domain/            # slot_item.dart, planner_constants.dart
+│   │   └── presentation/      # planner_screen, recipe_picker, meal_slot, recipe_palette, servings_dialog
 │   │
 │   └── shopping/
 │       ├── data/              # shopping_repository.dart
-│       ├── domain/            # shopping_item_model.dart
-│       └── presentation/      # shopping_list_screen, add_item_sheet
+│       └── presentation/      # shopping_list_screen, shopping_provider, add_edit_item_sheet, shopping_item_tile
 │
 └── router/
     └── app_router.dart        # go_router: rutas y guards de auth
@@ -380,7 +397,7 @@ lib/
 | `share_plus` | Exportar lista de la compra |
 | `intl` | Formateo de fechas (semanas) |
 | `flutter_slidable` | Swipe en ítems de lista |
-| `cached_network_image` | Caché de fotos de recetas |
+| `cached_network_image` | Caché de fotos de recetas y avatares |
 | `sentry_flutter` | Crash reporting y performance traces |
 | `firebase_core` + `firebase_analytics` | Analytics de producto (GA4) |
 | `logger` | Logs estructurados con niveles en cliente |
@@ -388,6 +405,8 @@ lib/
 | `in_app_review` | Prompt nativo de valoración en tienda |
 | `connectivity_plus` | Detección de estado de red |
 | `flutter_secure_storage` | Almacenamiento seguro de tokens (Keychain / Keystore) |
+
+> **Web:** `supabase_flutter` arrastra `passkeys_web` (WebAuthn). Incluir `web/passkeys_bundle.js` en `index.html` antes de `flutter_bootstrap.js`.
 
 ### Flujo de datos clave: añadir receta al planificador
 
@@ -399,8 +418,8 @@ PlannerNotifier.addRecipeToSlot(slotId, recipeId, servings)
         │
         ├─► PlannerRepository.upsertSlot(...)        → Supabase: plan_slots
         │
-        └─► ShoppingRepository.addFromSlot(...)      → Supabase: shopping_items
-              (escala ingredientes × servings / recipe.servings)
+        └─► PlannerRepository._syncShoppingListAdd(...)  → Supabase: shopping_items
+              (escala ingredientes × servings / recipe.servings; consolida por nombre+unidad)
 ```
 
 ### Realtime (hogar compartido)
@@ -420,10 +439,16 @@ supabase
   )
   .subscribe();
 
-// En ShoppingNotifier
+// En ShoppingItemsNotifier
 supabase
-  .channel('shopping:${householdId}')
-  .onPostgresChanges(...)
+  .channel('shopping_items:${listId}')
+  .onPostgresChanges(
+    event: PostgresChangeEvent.all,
+    schema: 'public',
+    table: 'shopping_items',
+    filter: PostgresChangeFilter(type: FilterType.eq, column: 'shopping_list_id', value: listId),
+    callback: (payload) => _reloadFromServer(),
+  )
   .subscribe();
 ```
 
@@ -435,6 +460,7 @@ supabase
 /                         → Redirect según auth
 /auth/login
 /auth/register
+/auth/forgot-password
 /home                     → Shell con bottom nav
   /home/planner           → Planificador semanal
   /home/recipes           → Lista del recetario
@@ -442,8 +468,11 @@ supabase
     /home/recipes/new     → Formulario nueva receta
     /home/recipes/:id/edit
   /home/shopping          → Lista de la compra
-  /home/settings          → Ajustes (perfil, hogar)
-    /home/settings/household
+  /home/profile           → Perfil (avatar, hogar, cerrar sesión)
+    /home/profile/edit
+    /home/profile/household
+      /home/profile/household/create
+      /home/profile/household/join
 ```
 
 ---
