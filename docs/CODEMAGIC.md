@@ -72,7 +72,22 @@ Valores = los mismos que en tu `dart_defines.json` local.
 | **Android Release** | Push a `main` | `.aab` |
 | **iOS Release** | Push a `main` | `.ipa` |
 
-Pipeline: `flutter clean` → `pub get` → `analyze lib test` → `test` → build release.
+Pipeline: `flutter clean` → `pub get` → `analyze lib test` → `test` → **set build version** → build release.
+
+### Versionado automático (versionCode / build number)
+
+En CI, el **build number** no viene del `+1` de `pubspec.yaml`: Codemagic lo autoincrementa con `PROJECT_BUILD_NUMBER` (contador global del proyecto en Codemagic).
+
+| Campo | Origen en CI |
+|-------|----------------|
+| **versionName** / `CFBundleShortVersionString` | Parte antes del `+` en `pubspec.yaml` (p. ej. `1.0.0`) |
+| **versionCode** / `CFBundleVersion` | `PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET` |
+
+- Cambias la versión visible (`1.0.0` → `1.0.1`) editando `pubspec.yaml` y haciendo merge a `main`.
+- No hace falta tocar el número tras el `+` para releases de Codemagic; el `+1` del repo solo aplica a builds locales.
+- Si ya subiste builds a Play/TestFlight y el contador de Codemagic es menor, sube `BUILD_NUMBER_OFFSET` en `codemagic.yaml` (p. ej. `10` si el último versionCode en Play fue `10`).
+
+En el log del paso **Set build version** verás: `Release version: 1.0.0+42`.
 
 ---
 
