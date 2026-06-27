@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 27/06/2026 — **Fase 2 en progreso** (F1–F3 completadas en cliente; siguiente: Fase 3 recetario)
+> Actualizado: 27/06/2026 — **Fase 3 completada** (F4–F5 recetario en cliente; siguiente: Fase 4 planificador)
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -10,8 +10,8 @@
 | Fase                    | Estado     | Descripción                                                                   |
 | ----------------------- | ---------- | ----------------------------------------------------------------------------- |
 | Fase 1 — Setup          | Completada | Flutter, Supabase, OAuth, CI/CD Codemagic, builds Android + iOS verificados  |
-| Fase 2 — Auth y perfiles| En progreso | F1 auth, F2 perfil y F3 hogar completados en UI; lógica individual en planificador/lista → Fases 4–5 |
-| Fase 3 — Recetario      | Pendiente | CRUD recetas, ingredientes, pasos, fotos, nutrición                          |
+| Fase 2 — Auth y perfiles| Completada | F1 auth, F2 perfil y F3 hogar en UI; modo individual en planificador/lista → Fases 4–5 |
+| Fase 3 — Recetario      | Completada | CRUD recetas, ingredientes, pasos, fotos, nutrición (F4–F5)                  |
 | Fase 4 — Planificador   | Pendiente | Vista semanal, slots, escalado de raciones, Realtime                         |
 | Fase 5 — Lista compra   | Pendiente | Generación automática, agrupación, exportación WhatsApp                      |
 | Fase 6 — Red social     | Backlog  | Recetas públicas, descubrimiento, valoraciones, seguimiento                  |
@@ -223,34 +223,42 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### F4 - CRUD de recetas
 
-- [ ] Pantalla de lista del recetario (cards con foto, nombre y tags)
-- [ ] Buscador de recetas por nombre
-- [ ] Filtro de recetas por etiqueta
-- [ ] Pantalla de detalle de receta (todos los campos, ingredientes, pasos, nutrición)
-- [ ] Pantalla/formulario de creación de receta
-  - [ ] Campo: nombre (obligatorio)
-  - [ ] Campo: foto (opcional; `image_picker` + subida a Supabase Storage)
-  - [ ] Campo: raciones (obligatorio)
-  - [ ] Campo: tiempo de preparación (minutos, opcional)
-  - [ ] Campo: tiempo de cocción (minutos, opcional)
-  - [ ] Campo: etiquetas (chips seleccionables + opción de escribir etiqueta libre)
-  - [ ] Lista de ingredientes con reordenación (`flutter_slidable` / drag-to-reorder)
-  - [ ] Lista de pasos de elaboración con reordenación
-  - [ ] Sección de información nutricional (calorías, proteínas, carbohidratos, grasas, fibra)
-- [ ] Pantalla/formulario de edición de receta (misma UI que creación)
-- [ ] Eliminar receta (con confirmación modal; los slots que la referencian quedan vacíos)
+- [x] Pantalla de lista del recetario (cards con foto, nombre y tags)
+  - `recipe_list_screen.dart`; rutas anidadas en rama `/home/recipes`
+- [x] Buscador de recetas por nombre
+  - Debounce 300 ms; estado vacío distinto si hay filtro activo sin resultados
+- [x] Filtro de recetas por etiqueta
+  - Chips horizontales con tags del usuario
+- [x] Pantalla de detalle de receta (todos los campos, ingredientes, pasos, nutrición)
+  - `recipe_detail_screen.dart` → `/home/recipes/:id`
+- [x] Pantalla/formulario de creación de receta
+  - [x] Campo: nombre (obligatorio)
+  - [x] Campo: foto (opcional; `image_picker` + subida a Supabase Storage bucket `recipe-photos`)
+  - [x] Campo: raciones (obligatorio)
+  - [x] Campo: tiempo de preparación (minutos, opcional)
+  - [x] Campo: tiempo de cocción (minutos, opcional)
+  - [x] Campo: etiquetas (chips seleccionables + opción de escribir etiqueta libre)
+  - [x] Lista de ingredientes con reordenación (`ReorderableListView`)
+  - [x] Lista de pasos de elaboración con reordenación
+  - [x] Sección de información nutricional (calorías, proteínas, carbohidratos, grasas, fibra)
+  - `recipe_form_screen.dart` → `/home/recipes/new`
+- [x] Pantalla/formulario de edición de receta (misma UI que creación)
+  - `/home/recipes/:id/edit`
+- [x] Eliminar receta (con confirmación modal; los slots que la referencian quedan vacíos)
+  - `ON DELETE SET NULL` en `plan_slots.recipe_id`
 
 ### F5 - Ingredientes
 
-- [ ] Componente `IngredientRow`: nombre, cantidad, unidad, categoría
-- [ ] Selector de unidad (lista predefinida + campo libre):
+- [x] Componente `IngredientRow`: nombre, cantidad, unidad, categoría
+  - `widgets/ingredient_row.dart`
+- [x] Selector de unidad (lista predefinida + campo libre):
   - Unidades de peso: `g`, `kg`
   - Unidades de volumen: `ml`, `l`
   - Unidades de conteo: `unidad`, `unidades`
   - Unidades relativas: `pizca`, `cucharadita`, `cucharada`, `vaso`, `taza`, `puñado`
-- [ ] Selector de categoría de ingrediente:
+- [x] Selector de categoría de ingrediente:
   - `Carnes y pescados`, `Verduras`, `Frutas`, `Lácteos`, `Cereales`, `Legumbres`, `Especias`, `Otros`
-- [ ] Añadir/eliminar ingrediente desde el formulario de receta
+- [x] Añadir/eliminar ingrediente desde el formulario de receta
 
 ---
 
