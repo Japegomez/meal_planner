@@ -359,7 +359,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Apple Developer Program + firma iOS en Codemagic
 - [x] Primer build iOS release en Codemagic (`.ipa` generado)
 - [x] `codemagic.yaml`: publicación automática a **TestFlight** (`publishing.app_store_connect`)
-- [X] Integración App Store Connect API en Codemagic (nombre `meal_planner`) + `APP_STORE_APPLE_ID` en yaml
+- [X] Integración App Store Connect API en Codemagic (`Codemagic API Key`) + `APP_STORE_APPLE_ID` en yaml
 - [ ] App creada en App Store Connect
 - [ ] Testing interno TestFlight: Sign in with Apple, Google OAuth, flujo completo de la app
 - [ ] Completar ficha App Store Connect y **Submit for Review**

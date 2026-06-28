@@ -126,7 +126,7 @@ Track por defecto: `internal` (variable `GOOGLE_PLAY_TRACK`). Para producción, 
 1. [App Store Connect](https://appstoreconnect.apple.com/) → **Users and Access → Integrations → App Store Connect API** → Generate key (**App Manager**).
 2. Descarga el `.p8` (solo una vez). Anota **Issuer ID** y **Key ID**.
 3. Codemagic → **Team settings → Integrations → Developer Portal** → Connect.
-4. **API key name:** `meal_planner` ← debe coincidir con `integrations.app_store_connect` en el yaml.
+4. **API key name:** `Codemagic API Key` ← debe coincidir con `integrations.app_store_connect` en el yaml.
 5. Sube Issuer ID, Key ID y el `.p8`.
 
 ### Variable `APP_STORE_APPLE_ID` (iOS)
