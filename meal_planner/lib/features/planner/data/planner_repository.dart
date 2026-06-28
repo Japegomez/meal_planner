@@ -91,10 +91,32 @@ class PlannerRepository {
   }
 
   Future<void> removeSlot(String slotId) async {
-    await supabase
-        .from(ShoppingItem.table_name)
-        .delete()
-        .eq(ShoppingItem.c_planSlotId, slotId);
+    final slotRow = await supabase
+        .from(PlanSlot.table_name)
+        .select('*, weekly_plans(user_id, household_id)')
+        .eq(PlanSlot.c_id, slotId)
+        .maybeSingle();
+
+    if (slotRow != null) {
+      final slot = PlanSlot.fromJson(slotRow);
+      final planData = slotRow['weekly_plans'] as Map<String, dynamic>?;
+      final householdId = planData?[WeeklyPlan.c_householdId]?.toString();
+      final userId = planData?[WeeklyPlan.c_userId]?.toString() ??
+          supabase.auth.currentUser?.id;
+
+      if (slot.recipeId != null && !slot.isLeftover && userId != null) {
+        await _syncShoppingListRemove(
+          slot: slot,
+          userId: userId,
+          householdId: householdId,
+        );
+      } else {
+        await supabase
+            .from(ShoppingItem.table_name)
+            .delete()
+            .eq(ShoppingItem.c_planSlotId, slotId);
+      }
+    }
 
     await supabase.from(PlanSlot.table_name).delete().eq(PlanSlot.c_id, slotId);
   }
@@ -175,6 +197,79 @@ class PlannerRepository {
 
     if (ingredients.isEmpty) return;
 
+    for (final ingredient in ingredients) {
+      final scaledQty = ingredient.quantity != null
+          ? ingredient.quantity! * scale
+          : null;
+
+      await supabase.from(ShoppingItem.table_name).insert(
+            ShoppingItem.insert(
+              shoppingListId: list.id,
+              name: ingredient.name,
+              quantity: scaledQty,
+              unit: ingredient.unit,
+              category: ingredient.category,
+              isManual: false,
+              planSlotId: slot.id,
+              ingredientId: ingredient.id,
+            ),
+          );
+    }
+  }
+
+  Future<void> _syncShoppingListRemove({
+    required PlanSlot slot,
+    required String userId,
+    String? householdId,
+  }) async {
+    final list = await getOrCreateShoppingList(
+      userId: userId,
+      householdId: householdId,
+    );
+
+    final linkedData = await supabase
+        .from(ShoppingItem.table_name)
+        .select()
+        .eq(ShoppingItem.c_shoppingListId, list.id)
+        .eq(ShoppingItem.c_planSlotId, slot.id);
+
+    final linkedItems = ShoppingItem.converter(
+      (linkedData as List).cast<Map<String, dynamic>>(),
+    );
+
+    if (linkedItems.isNotEmpty) {
+      await supabase
+          .from(ShoppingItem.table_name)
+          .delete()
+          .eq(ShoppingItem.c_planSlotId, slot.id);
+      return;
+    }
+
+    // Legacy fallback: quantities merged into shared rows without a slot link.
+    final recipeId = slot.recipeId;
+    if (recipeId == null) return;
+
+    final recipeData = await supabase
+        .from(Recipe.table_name)
+        .select(Recipe.c_servings)
+        .eq(Recipe.c_id, recipeId)
+        .single();
+
+    final recipeServings = int.parse(recipeData[Recipe.c_servings].toString());
+    if (recipeServings <= 0) return;
+
+    final scale = slot.servings / recipeServings;
+
+    final ingredientsData = await supabase
+        .from(Ingredient.table_name)
+        .select()
+        .eq(Ingredient.c_recipeId, recipeId)
+        .order(Ingredient.c_position);
+
+    final ingredients = Ingredient.converter(
+      (ingredientsData as List).cast<Map<String, dynamic>>(),
+    );
+
     final existingData = await supabase
         .from(ShoppingItem.table_name)
         .select()
@@ -188,6 +283,7 @@ class PlannerRepository {
       final scaledQty = ingredient.quantity != null
           ? ingredient.quantity! * scale
           : null;
+      if (scaledQty == null) continue;
 
       final matchIndex = existingItems.indexWhere(
         (item) => _matchesForConsolidation(
@@ -196,43 +292,33 @@ class PlannerRepository {
           unit: ingredient.unit,
         ),
       );
+      if (matchIndex < 0) continue;
 
-      if (matchIndex >= 0) {
-        final match = existingItems[matchIndex];
-        if (scaledQty != null) {
-          final newQty = (match.quantity ?? 0) + scaledQty;
-          await supabase
-              .from(ShoppingItem.table_name)
-              .update({ShoppingItem.c_quantity: newQty.toString()})
-              .eq(ShoppingItem.c_id, match.id);
+      final match = existingItems[matchIndex];
+      final newQty = (match.quantity ?? 0) - scaledQty;
 
-          existingItems = [
-            ...existingItems.sublist(0, matchIndex),
-            match.copyWith(quantity: newQty),
-            ...existingItems.sublist(matchIndex + 1),
-          ];
-        }
+      if (newQty <= 0) {
+        await supabase
+            .from(ShoppingItem.table_name)
+            .delete()
+            .eq(ShoppingItem.c_id, match.id);
+        existingItems = [
+          ...existingItems.sublist(0, matchIndex),
+          ...existingItems.sublist(matchIndex + 1),
+        ];
         continue;
       }
 
-      final data = await supabase
+      await supabase
           .from(ShoppingItem.table_name)
-          .insert(
-            ShoppingItem.insert(
-              shoppingListId: list.id,
-              name: ingredient.name,
-              quantity: scaledQty,
-              unit: ingredient.unit,
-              category: ingredient.category,
-              isManual: false,
-              planSlotId: slot.id,
-              ingredientId: ingredient.id,
-            ),
-          )
-          .select()
-          .single();
+          .update({ShoppingItem.c_quantity: newQty.toString()})
+          .eq(ShoppingItem.c_id, match.id);
 
-      existingItems = [...existingItems, ShoppingItem.fromJson(data)];
+      existingItems = [
+        ...existingItems.sublist(0, matchIndex),
+        match.copyWith(quantity: newQty),
+        ...existingItems.sublist(matchIndex + 1),
+      ];
     }
   }
 

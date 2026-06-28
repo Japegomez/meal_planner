@@ -92,6 +92,15 @@ class ShoppingItemsNotifier extends AsyncNotifier<List<ShoppingItem>> {
     );
   }
 
+  /// Refreshes items from the server. Used when planner changes affect the list.
+  Future<void> reload() async {
+    if (_listId == null) {
+      ref.invalidateSelf();
+      return;
+    }
+    await _reloadFromServer();
+  }
+
   Future<void> toggleItem(String id, bool isChecked) async {
     final previous = state.valueOrNull ?? const <ShoppingItem>[];
 

@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:meal_planner/features/shopping/presentation/shopping_provider.dart';
 
-class HomeShell extends StatelessWidget {
+class HomeShell extends ConsumerWidget {
   const HomeShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
-  void _onTap(int index) {
+  void _onTap(int index, WidgetRef ref) {
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,
     );
+
+    if (index == 1) {
+      ref.read(shoppingItemsProvider.notifier).reload();
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _onTap,
+        onDestinationSelected: (index) => _onTap(index, ref),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.menu_book_outlined),
