@@ -26,6 +26,7 @@ class RecipeDetailScreen extends ConsumerWidget {
           prepTime: detail.recipe.prepTime,
           cookTime: detail.recipe.cookTime,
           tags: detail.recipe.tags,
+          isPublic: detail.recipe.isPublic,
           ingredients: detail.ingredients,
           steps: detail.steps,
           nutrition: detail.nutrition,
@@ -46,6 +47,7 @@ class _RecipeDetailBody extends ConsumerWidget {
     required this.prepTime,
     required this.cookTime,
     required this.tags,
+    required this.isPublic,
     required this.ingredients,
     required this.steps,
     required this.nutrition,
@@ -58,6 +60,7 @@ class _RecipeDetailBody extends ConsumerWidget {
   final int? prepTime;
   final int? cookTime;
   final List<String> tags;
+  final bool isPublic;
   final List<Ingredient> ingredients;
   final List<RecipeStep> steps;
   final NutritionInfo? nutrition;
@@ -135,6 +138,15 @@ class _RecipeDetailBody extends ConsumerWidget {
                       icon: Icons.people_outline,
                       label: '$servings raciones',
                     ),
+                    if (isPublic)
+                      Chip(
+                        avatar: Icon(
+                          Icons.public,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        label: const Text('Pública'),
+                      ),
                     if (prepTime != null)
                       _InfoChip(
                         icon: Icons.timer_outlined,

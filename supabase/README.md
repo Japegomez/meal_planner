@@ -9,7 +9,7 @@
 | Project ref | `hxtynisikjpwlvpdgdbt` |
 | URL | `https://hxtynisikjpwlvpdgdbt.supabase.co` |
 
-Migraciones `001`–`010` aplicadas (tablas, RLS, RPCs hogar, buckets Storage, Realtime, eliminación de cuenta).
+Migraciones `001`–`013` aplicadas (tablas, RLS, RPCs hogar, buckets Storage, Realtime, eliminación de cuenta, red social Fase 6).
 
 ## Variables para Flutter
 
@@ -36,7 +36,7 @@ supabase link --project-ref hxtynisikjpwlvpdgdbt
 supabase db push
 ```
 
-O aplica cada archivo en `migrations/` desde el SQL Editor, en orden `001` → `010`.
+O aplica cada archivo en `migrations/` desde el SQL Editor, en orden `001` → `013`.
 
 ## Generar tipos Dart (Supadart)
 

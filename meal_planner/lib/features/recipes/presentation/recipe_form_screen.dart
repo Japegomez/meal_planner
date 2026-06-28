@@ -53,6 +53,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       existingPhotoPath: data.existingPhotoPath,
       removePhoto: false,
       pendingPhoto: file,
+      isPublic: data.isPublic,
     );
     ref.read(recipeFormProvider(widget.recipeId).notifier).updateData(updated);
   }
@@ -70,6 +71,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       nutrition: data.nutrition,
       existingPhotoPath: data.existingPhotoPath,
       removePhoto: true,
+      isPublic: data.isPublic,
     );
     ref.read(recipeFormProvider(widget.recipeId).notifier).updateData(updated);
   }
@@ -106,7 +108,38 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       existingPhotoPath: data.existingPhotoPath,
       removePhoto: data.removePhoto,
       pendingPhoto: data.pendingPhoto,
+      isPublic: data.isPublic,
     );
+  }
+
+  Future<void> _togglePublic(RecipeFormData data, bool value) async {
+    if (value) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Publicar receta'),
+          content: const Text(
+            'Esta receta será visible para todos los usuarios de MealPlanner. '
+            'Podrás despublicarla en cualquier momento.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Publicar'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    final copy = _copyData(data);
+    copy.isPublic = value;
+    _updateForm(copy);
   }
 
   @override
@@ -446,6 +479,18 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
               copy.nutrition.fiber = nutrition.fiber;
               _updateForm(copy);
             },
+          ),
+          const SizedBox(height: 24),
+          Card(
+            child: SwitchListTile(
+              title: const Text('Publicar receta'),
+              subtitle: const Text(
+                'Visible para todos los usuarios en Explorar',
+              ),
+              secondary: const Icon(Icons.public),
+              value: data.isPublic,
+              onChanged: (value) => _togglePublic(data, value),
+            ),
           ),
           const SizedBox(height: 32),
         ],

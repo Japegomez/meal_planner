@@ -89,6 +89,7 @@ class RecipeFormData {
     this.existingPhotoPath,
     this.removePhoto = false,
     this.pendingPhoto,
+    this.isPublic = false,
   })  : tags = tags ?? [],
         ingredients = ingredients ?? [IngredientFormItem()],
         steps = steps ?? [StepFormItem()],
@@ -105,6 +106,7 @@ class RecipeFormData {
   String? existingPhotoPath;
   bool removePhoto;
   XFile? pendingPhoto;
+  bool isPublic;
 
   String? validate() {
     if (title.trim().isEmpty) return 'El nombre es obligatorio';

@@ -121,6 +121,7 @@ class RecipesRepository {
             prepTime: form.prepTime,
             cookTime: form.cookTime,
             tags: form.tags,
+            isPublic: form.isPublic,
           ),
         )
         .select()
@@ -145,6 +146,7 @@ class RecipesRepository {
             prepTime: form.prepTime,
             cookTime: form.cookTime,
             tags: form.tags,
+            isPublic: form.isPublic,
           ),
         )
         .eq(Recipe.c_id, id)
@@ -355,6 +357,7 @@ class RecipesRepository {
         fiber: detail.nutrition?.fiber,
       ),
       existingPhotoPath: recipe.photoUrl,
+      isPublic: recipe.isPublic,
     );
   }
 }
