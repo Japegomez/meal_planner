@@ -3,6 +3,7 @@ import 'package:meal_planner/core/supabase/models/recipe.dart';
 import 'package:meal_planner/features/recipes/data/recipes_repository.dart';
 import 'package:meal_planner/features/recipes/domain/recipe_detail.dart';
 import 'package:meal_planner/features/recipes/domain/recipe_form_data.dart';
+import 'package:meal_planner/features/social/presentation/social_provider.dart';
 
 final recipesRepositoryProvider = Provider<RecipesRepository>((ref) {
   return RecipesRepository();
@@ -141,6 +142,8 @@ class RecipeFormNotifier extends AutoDisposeFamilyAsyncNotifier<
         ref.invalidate(recipeDetailProvider(current.recipeId!));
         ref.invalidate(recipeTagsProvider);
         ref.invalidate(recipesProvider);
+        ref.invalidate(exploreRecipesProvider);
+        ref.invalidate(publicTagsProvider);
         state = AsyncData(current.copyWith(isSaving: false));
         return current.recipeId;
       }
@@ -149,6 +152,8 @@ class RecipeFormNotifier extends AutoDisposeFamilyAsyncNotifier<
       ref.invalidate(recipeListProvider);
       ref.invalidate(recipeTagsProvider);
       ref.invalidate(recipesProvider);
+      ref.invalidate(exploreRecipesProvider);
+      ref.invalidate(publicTagsProvider);
       state = AsyncData(
         current.copyWith(isSaving: false, recipeId: id),
       );
@@ -173,6 +178,8 @@ class RecipeFormNotifier extends AutoDisposeFamilyAsyncNotifier<
       ref.invalidate(recipeListProvider);
       ref.invalidate(recipeTagsProvider);
       ref.invalidate(recipesProvider);
+      ref.invalidate(exploreRecipesProvider);
+      ref.invalidate(publicTagsProvider);
       return true;
     } catch (e) {
       state = AsyncData(

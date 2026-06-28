@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 27/06/2026 — **Fase 5 completada** (lista de la compra F9–F12 en cliente; siguiente: publicación en stores / Fase 6 red social)
+> Actualizado: 28/06/2026 — **Fase 6 completada** (red social F13–F15 en cliente; migraciones `013`–`014` aplicadas en remoto)
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -14,7 +14,7 @@
 | Fase 3 — Recetario      | Completada | CRUD recetas, ingredientes, pasos, fotos, nutrición (F4–F5)                  |
 | Fase 4 — Planificador   | Completada | Vista semanal vertical, slots, drag-and-drop, sobras, texto libre, Realtime |
 | Fase 5 — Lista compra   | Completada | Vista agrupada, CRUD, consolidación al añadir, exportación, Realtime hogar   |
-| Fase 6 — Red social     | Backlog  | Recetas públicas, descubrimiento, valoraciones, seguimiento                  |
+| Fase 6 — Red social     | Completada | Recetas públicas, exploración, valoraciones, seguimiento, feed, perfiles públicos |
 
 ---
 
@@ -393,32 +393,38 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ---
 
-## Fase 6 — Red social (Backlog)
+## Fase 6 — Red social
 
-> Planificada para después de la Fase 1 (completada). Los campos `is_public` en `recipes` y la columna RLS ya están preparados en el esquema.
+> Implementada en rama `feat/social_hub` (PR #31). Migraciones `013_social` y `014_recipe_forked_from` aplicadas en remoto (28/06/2026).
 
 ### Migraciones de base de datos
 
-- [ ] Añadir tabla `recipe_ratings` (usuario, receta, puntuación 1–5)
-- [ ] Añadir tabla `follows` (follower_id, following_id)
-- [ ] RPC `list_public_recipes(filters)` con paginación y ordenación por valoración / fecha
-- [ ] Actualizar RLS en `recipes`: lectura pública si `is_public = true`
+- [x] Añadir tabla `recipe_ratings` (usuario, receta, puntuación 1–5)
+  - Migración `013_social.sql`
+- [x] Añadir tabla `follows` (follower_id, following_id)
+- [x] RPC `list_public_recipes(filters)` con paginación y ordenación por valoración / fecha
+- [x] Actualizar RLS en `recipes`: lectura pública si `is_public = true` (+ ingredientes, pasos, nutrición, fotos y avatares de autores)
+- [x] Migración `014_recipe_forked_from.sql`: columna `forked_from_id`; constraint que impide publicar recetas forkeadas
 
 ### F13 - Recetas públicas
 
-- [ ] Campo «Publicar receta» (toggle) en formulario de creación/edición
-- [ ] Aviso al publicar: la receta será visible para todos los usuarios
+- [x] Campo «Publicar receta» (toggle) en formulario de creación/edición
+- [x] Aviso al publicar: la receta será visible para todos los usuarios
+- [x] Cambiar visibilidad desde detalle de receta (toggle con confirmación publicar / hacer privada)
+- [x] Recetas forkeadas no se pueden publicar (UI + backend)
 
 ### F14 - Descubrimiento
 
-- [ ] Pantalla de exploración de recetas públicas (buscador + filtros por etiqueta)
-- [ ] Paginación / scroll infinito
-- [ ] Tarjeta de receta pública: foto, nombre, autor, valoración media, etiquetas
+- [x] Pantalla de exploración de recetas públicas (buscador + filtros por etiqueta)
+  - Tab **Explorar** (primera posición en bottom nav) → `/home/explore`
+- [x] Paginación / scroll infinito
+- [x] Tarjeta de receta pública: foto, nombre, autor, valoración media, etiquetas
 
 ### F15 - Interacción social
 
-- [ ] Guardar receta pública de otro usuario en el recetario propio (fork)
-- [ ] Valorar receta pública (1–5 estrellas; una valoración por usuario por receta)
-- [ ] Seguir a otro usuario
-- [ ] Feed: recetas recientes de usuarios a los que sigo
-- [ ] Perfil público: foto, bio, recetas publicadas y valoración media
+- [x] Guardar receta pública de otro usuario en el recetario propio (fork)
+- [x] Valorar receta pública (1–5 estrellas; una valoración por usuario por receta)
+- [x] Seguir a otro usuario
+- [x] Feed: recetas recientes de usuarios a los que sigo (`/home/explore/feed`)
+- [x] Perfil público: foto, nombre, recetas publicadas y valoración media (`/home/explore/user/:userId`)
+  - Pendiente: campo bio en perfil (no existe en esquema `profiles`)

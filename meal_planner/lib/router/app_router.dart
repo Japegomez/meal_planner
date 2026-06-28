@@ -18,6 +18,9 @@ import 'package:meal_planner/features/recipes/presentation/recipe_detail_screen.
 import 'package:meal_planner/features/recipes/presentation/recipe_form_screen.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_list_screen.dart';
 import 'package:meal_planner/features/shopping/presentation/shopping_list_screen.dart';
+import 'package:meal_planner/features/social/presentation/explore_screen.dart';
+import 'package:meal_planner/features/social/presentation/feed_screen.dart';
+import 'package:meal_planner/features/social/presentation/public_screens.dart';
 import 'package:meal_planner/router/home_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -76,6 +79,32 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _, navigationShell) =>
             HomeShell(navigationShell: navigationShell),
         branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home/explore',
+                builder: (_, _) => const ExploreScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'feed',
+                    builder: (_, _) => const FeedScreen(),
+                  ),
+                  GoRoute(
+                    path: 'user/:userId',
+                    builder: (_, state) => PublicProfileScreen(
+                      userId: state.pathParameters['userId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) => PublicRecipeDetailScreen(
+                      recipeId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
           StatefulShellBranch(
             routes: [
               GoRoute(
