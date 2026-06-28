@@ -82,7 +82,7 @@ En CI, el **build number** no viene del `+1` de `pubspec.yaml`: Codemagic lo aut
 | Campo | Origen en CI |
 |-------|----------------|
 | **versionName** / `CFBundleShortVersionString` | Parte antes del `+` en `pubspec.yaml` (p. ej. `1.0.0`) |
-| **versionCode** / `CFBundleVersion` | `PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET` |
+| **versionCode** / `CFBundleVersion` | `max(PROJECT_BUILD_NUMBER, último en tienda) + 1` si hay historial en Play/TestFlight |
 
 - Cambias la versión visible (`1.0.0` → `1.0.1`) editando `pubspec.yaml` y haciendo merge a `main`.
 - No hace falta tocar el número tras el `+` para releases de Codemagic; el `+1` del repo solo aplica a builds locales.
@@ -144,7 +144,7 @@ Sin esto, el build number usa `PROJECT_BUILD_NUMBER` (funciona, pero no sincroni
 ### Versionado al publicar
 
 - **Android:** `google-play get-latest-build-number` + 1 (track `internal`). Si no hay historial, usa `PROJECT_BUILD_NUMBER`.
-- **iOS:** `app-store-connect get-latest-app-store-build-number` + 1 si `APP_STORE_APPLE_ID` está configurado.
+- **iOS:** `get-latest-testflight-build-number` + 1 si `APP_STORE_APPLE_ID` está configurado; si no, solo `PROJECT_BUILD_NUMBER` (puede chocar con TestFlight).
 
 ### Flujo tras merge a `main`
 
