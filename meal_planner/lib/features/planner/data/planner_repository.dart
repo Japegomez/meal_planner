@@ -15,12 +15,12 @@ class PlannerRepository {
   }) async {
     final dateStr = _formatDate(weekStart);
 
-    final data = await supabase.rpc(
+    final data = await supabase.rpc<Map<String, dynamic>>(
       'get_or_create_weekly_plan',
       params: {'week_start': dateStr},
     );
 
-    return WeeklyPlan.fromJson(Map<String, dynamic>.from(data as Map));
+    return WeeklyPlan.fromJson(data);
   }
 
   Future<List<SlotItem>> getSlotsForPlan(String planId) async {
