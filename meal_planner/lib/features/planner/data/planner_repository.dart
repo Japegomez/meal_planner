@@ -17,7 +17,7 @@ class PlannerRepository {
 
     final data = await supabase.rpc<Map<String, dynamic>>(
       'get_or_create_weekly_plan',
-      params: {'week_start': dateStr},
+      params: {'p_week_start': dateStr},
     );
 
     return WeeklyPlan.fromJson(data);

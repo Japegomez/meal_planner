@@ -1,4 +1,6 @@
--- 011_planner_rpc_upsert: make get_or_create_weekly_plan safe under concurrent calls
+-- 012_planner_rpc_fix_ambiguous_week_start: rename RPC arg to avoid column name clash
+
+DROP FUNCTION IF EXISTS public.get_or_create_weekly_plan(date);
 
 CREATE OR REPLACE FUNCTION public.get_or_create_weekly_plan(p_week_start date)
 RETURNS public.weekly_plans
@@ -41,3 +43,5 @@ BEGIN
   RETURN existing_plan;
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION public.get_or_create_weekly_plan(date) TO authenticated;

@@ -79,14 +79,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/home/planner',
-                builder: (_, _) => const PlannerScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/home/recipes',
                 builder: (_, _) => const RecipeListScreen(),
                 routes: [
@@ -117,6 +109,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/home/shopping',
                 builder: (_, _) => const ShoppingListScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home/planner',
+                builder: (_, _) => const PlannerScreen(),
               ),
             ],
           ),
