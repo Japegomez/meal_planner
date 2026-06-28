@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 27/06/2026 — **Fase 5 completada** (lista de la compra F9–F12 en cliente; siguiente: publicación en stores / Fase 6 red social)
+> Actualizado: 28/06/2026 — **Fase 6 en `main`** (PR #31); mejoras de lista de la compra, Play Console (AD_ID / versionCode) y UX
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -13,8 +13,8 @@
 | Fase 2 — Auth y perfiles| Completada | F1 auth, F2 perfil y F3 hogar en UI; modo individual en planificador y lista |
 | Fase 3 — Recetario      | Completada | CRUD recetas, ingredientes, pasos, fotos, nutrición (F4–F5)                  |
 | Fase 4 — Planificador   | Completada | Vista semanal vertical, slots, drag-and-drop, sobras, texto libre, Realtime |
-| Fase 5 — Lista compra   | Completada | Vista agrupada, CRUD, consolidación al añadir, exportación, Realtime hogar   |
-| Fase 6 — Red social     | Backlog  | Recetas públicas, descubrimiento, valoraciones, seguimiento                  |
+| Fase 5 — Lista compra   | Completada | Vista agrupada, CRUD, sync planificador↔lista por `plan_slot_id`, exportación, Realtime hogar |
+| Fase 6 — Red social     | Completada | Recetas públicas, exploración, valoraciones, seguimiento, feed, perfiles públicos (en `main`) |
 
 ---
 
@@ -101,6 +101,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
   - Añadir `SENTRY_DSN` a Codemagic Environment Variables
 - [x] Integrar **Firebase Analytics** en código (`firebase_core`, `firebase_analytics`, `AnalyticsService`)
   - Init en `main.dart`; sin API keys en `--dart-define` (config vía `firebase_options.dart`)
+  - Android: permiso `AD_ID` en manifiesto + `google_analytics_adid_collection_enabled` (analíticas, no anuncios); declarar **Sí → Analíticas** en Play Console
   - Quitar `posthog_flutter` y variables `POSTHOG_*`
 - [x] Vincular proyecto Firebase (manual)
   - Proyecto `mealplanner-a818e`; apps Android + iOS
@@ -190,6 +191,9 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
   - Trigger `handle_new_user` en `001_profiles.sql`
 - [x] Cerrar sesión desde perfil (con confirmación modal)
   - `profile_screen.dart` en tab Perfil (`/home/profile`)
+- [x] Mensajes de error amigables en login/registro (mapeo `AuthApiException` → `AuthException`)
+- [x] Cierre de sesión al salir de la app / reinicio en frío (`SessionLifecycleHandler` + limpieza en `main.dart`)
+- [x] Campos de contraseña con icono mostrar/ocultar (`PasswordTextField`)
 
 ### F2 - Perfil de usuario
 
@@ -259,6 +263,8 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Selector de categoría de ingrediente:
   - `Carnes y pescados`, `Verduras`, `Frutas`, `Lácteos`, `Cereales`, `Legumbres`, `Especias`, `Otros`
 - [x] Añadir/eliminar ingrediente desde el formulario de receta
+  - Botones «Añadir ingrediente» / «Añadir paso» al final de cada lista (mejor UX en recetas largas)
+- [x] Ampliar etiquetas sugeridas (dietas, alérgenos, estilos de cocina: sin lactosa, vegano, etc.)
 
 ---
 
@@ -267,7 +273,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 ### Migraciones de base de datos
 
 - [x] RPC `get_or_create_weekly_plan(week_start date)` → devuelve el plan de esa semana (crea si no existe)
-  - Migración `008_planner_rpc.sql`; el cliente implementa upsert equivalente en `PlannerRepository.getOrCreateWeeklyPlan`
+  - Migraciones `008_planner_rpc.sql`, `011_planner_rpc_upsert.sql`, `012_planner_rpc_fix_ambiguous_week_start.sql` (upsert atómico vía RPC; parámetro `p_week_start`)
 - [x] Migración `009_plan_slots_extras.sql`: columnas `is_leftover` (boolean) y `notes` (text) en `plan_slots`
   - Aplicada en remoto (27/06/2026)
 
@@ -292,7 +298,8 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Confirmar asignación: inserta fila en `plan_slots` y sincroniza ingredientes en `shopping_items` (si hay receta y no es sobra)
 - [x] Actualización optimista de la UI (sin recarga completa al añadir/quitar)
 - [x] Eliminar comida concreta de un slot (botón ✕ + confirmación; no afecta a otras del mismo slot)
-  - Al eliminar: borra `shopping_items` vinculados por `plan_slot_id`
+  - Borra `shopping_items` vinculados por `plan_slot_id`; fallback legacy resta cantidades en filas antiguas consolidadas
+  - Tras añadir/quitar: `shoppingItemsProvider.reload()` + recarga al abrir tab Compra
 
 ### F8 - Realtime (hogar)
 
@@ -319,12 +326,11 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ### F10 - Automatización desde el planificador
 
-- [x] Al añadir receta al planificador: insertar sus ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
+- [x] Al añadir receta al planificador: insertar ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
   - Omitido si `is_leftover = true` o si el slot es texto libre (`recipe_id` null)
-- [x] Consolidación: si ya existe un ítem con el mismo nombre y unidad, sumar la cantidad en lugar de duplicar
-  - `_syncShoppingListAdd` en `PlannerRepository`; match case-insensitive por nombre
-- [x] Al eliminar receta del planificador: borrar ítems por `plan_slot_id`
-  - Pendiente: restar cantidad en lugar de borrar cuando haya consolidación
+  - Cada ingrediente se inserta con `plan_slot_id` (sin fusionar filas entre comidas distintas)
+- [x] Al eliminar receta del planificador: eliminar ítems por `plan_slot_id` o restar cantidad en datos legacy consolidados
+  - `_syncShoppingListRemove` en `PlannerRepository`
 
 ### F11 - Exportación
 
@@ -332,6 +338,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Generar texto plano con los ítems agrupados por categoría
   - Formato: `• 500 g Pechuga de pollo`, `• 1 Pimiento rojo`, etc.
 - [x] Abrir diálogo de compartir del sistema (paquete `share_plus`): compatible con WhatsApp y otras apps
+  - iOS/iPad: `sharePositionOrigin` obligatorio para que aparezca el share sheet
 
 ### F12 - Realtime (hogar)
 
@@ -349,20 +356,24 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 - [x] Workflow Codemagic: push a `main` → build release (AAB + IPA); `develop` → CI en GitHub Actions
 - [x] `codemagic.yaml`: publicación automática a track **internal** (`publishing.google_play`, draft)
-- [X] Grupo env `google_play` + service account JSON en Codemagic
+- [x] Grupo env `google_play` + service account JSON en Codemagic
+- [x] `versionCode`: `max(último en Play en todos los tracks, BUILD_NUMBER workflow) + 1` (PR #29)
+- [x] Declaración ID de publicidad: **Sí → Analíticas** (Firebase Analytics; permiso `AD_ID` en manifiesto, PR #30)
 - [x] Primera subida manual del AAB a **Pruebas internas** en Google Play Console (obligatorio la 1.ª vez)
-- [ ] App instalable vía enlace de testers internos
-- [ ] Completar ficha Play (textos, capturas, clasificación de contenido, política de privacidad)
+- [x] App instalable vía enlace de testers internos
+- [x] Completar ficha Play (textos, capturas, clasificación de contenido, política de privacidad)
 
 ### iOS — App Store / TestFlight
 
 - [x] Apple Developer Program + firma iOS en Codemagic
 - [x] Primer build iOS release en Codemagic (`.ipa` generado)
 - [x] `codemagic.yaml`: publicación automática a **TestFlight** (`publishing.app_store_connect`)
-- [X] Integración App Store Connect API en Codemagic (`Codemagic API Key`) + `APP_STORE_APPLE_ID` en yaml
-- [ ] App creada en App Store Connect
-- [ ] Testing interno TestFlight: Sign in with Apple, Google OAuth, flujo completo de la app
-- [ ] Completar ficha App Store Connect y **Submit for Review**
+- [x] Integración App Store Connect API en Codemagic (`Codemagic API Key`) + `APP_STORE_APPLE_ID` en yaml
+- [x] Sincronización build number con TestFlight/App Store + `ITSAppUsesNonExemptEncryption=false`
+- [x] Un solo artefacto IPA/AAB por workflow (evita subidas duplicadas)
+- [x] App creada en App Store Connect
+- [x] Testing interno TestFlight: Sign in with Apple, Google OAuth, flujo completo de la app
+- [x] Completar ficha App Store Connect y **Submit for Review**
 
 ---
 
@@ -379,9 +390,9 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 ## Backlog general (sin fase asignada)
 
 - [x] Pantalla de Términos y Condiciones (texto estático)
-  - GitHub Pages: `docs/legal/terminos.html`; en app: WebView `/legal/terms`
+  - GitHub Pages (legacy `/docs`): `docs/terminos.html`; en app: WebView `/legal/terms`
 - [x] Pantalla de Política de Privacidad (texto estático)
-  - GitHub Pages: `docs/legal/privacidad.html`; en app: WebView `/legal/privacy`
+  - GitHub Pages (legacy `/docs`): `docs/privacidad.html`; en app: WebView `/legal/privacy`
 - [x] Flujo de eliminación de cuenta (derecho de supresión RGPD)
   - RPC `delete_user_account` (migración `010`); pantalla Perfil → Eliminar cuenta
   - Pendiente: aplicar migración `010` en Supabase remoto
@@ -393,32 +404,38 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ---
 
-## Fase 6 — Red social (Backlog)
+## Fase 6 — Red social
 
-> Planificada para después de la Fase 1 (completada). Los campos `is_public` en `recipes` y la columna RLS ya están preparados en el esquema.
+> Integrada en `main` (PR #31). Migraciones `013_social` y `014_recipe_forked_from` aplicadas en remoto (28/06/2026).
 
 ### Migraciones de base de datos
 
-- [ ] Añadir tabla `recipe_ratings` (usuario, receta, puntuación 1–5)
-- [ ] Añadir tabla `follows` (follower_id, following_id)
-- [ ] RPC `list_public_recipes(filters)` con paginación y ordenación por valoración / fecha
-- [ ] Actualizar RLS en `recipes`: lectura pública si `is_public = true`
+- [x] Añadir tabla `recipe_ratings` (usuario, receta, puntuación 1–5)
+  - Migración `013_social.sql`
+- [x] Añadir tabla `follows` (follower_id, following_id)
+- [x] RPC `list_public_recipes(filters)` con paginación y ordenación por valoración / fecha
+- [x] Actualizar RLS en `recipes`: lectura pública si `is_public = true` (+ ingredientes, pasos, nutrición, fotos y avatares de autores)
+- [x] Migración `014_recipe_forked_from.sql`: columna `forked_from_id`; constraint que impide publicar recetas forkeadas
 
 ### F13 - Recetas públicas
 
-- [ ] Campo «Publicar receta» (toggle) en formulario de creación/edición
-- [ ] Aviso al publicar: la receta será visible para todos los usuarios
+- [x] Campo «Publicar receta» (toggle) en formulario de creación/edición
+- [x] Aviso al publicar: la receta será visible para todos los usuarios
+- [x] Cambiar visibilidad desde detalle de receta (toggle con confirmación publicar / hacer privada)
+- [x] Recetas forkeadas no se pueden publicar (UI + backend)
 
 ### F14 - Descubrimiento
 
-- [ ] Pantalla de exploración de recetas públicas (buscador + filtros por etiqueta)
-- [ ] Paginación / scroll infinito
-- [ ] Tarjeta de receta pública: foto, nombre, autor, valoración media, etiquetas
+- [x] Pantalla de exploración de recetas públicas (buscador + filtros por etiqueta)
+  - Tab **Explorar** (primera posición en bottom nav: Explorar | Recetario | Compra | Planificador | Perfil)
+- [x] Paginación / scroll infinito
+- [x] Tarjeta de receta pública: foto, nombre, autor, valoración media, etiquetas
 
 ### F15 - Interacción social
 
-- [ ] Guardar receta pública de otro usuario en el recetario propio (fork)
-- [ ] Valorar receta pública (1–5 estrellas; una valoración por usuario por receta)
-- [ ] Seguir a otro usuario
-- [ ] Feed: recetas recientes de usuarios a los que sigo
-- [ ] Perfil público: foto, bio, recetas publicadas y valoración media
+- [x] Guardar receta pública de otro usuario en el recetario propio (fork)
+- [x] Valorar receta pública (1–5 estrellas; una valoración por usuario por receta)
+- [x] Seguir a otro usuario
+- [x] Feed: recetas recientes de usuarios a los que sigo (`/home/explore/feed`)
+- [x] Perfil público: foto, nombre, recetas publicadas y valoración media (`/home/explore/user/:userId`)
+  - Pendiente: campo bio en perfil (no existe en esquema `profiles`)

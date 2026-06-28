@@ -9,7 +9,7 @@
 | Project ref | `hxtynisikjpwlvpdgdbt` |
 | URL | `https://hxtynisikjpwlvpdgdbt.supabase.co` |
 
-Migraciones `001`–`010` aplicadas (tablas, RLS, RPCs hogar, buckets Storage, Realtime, eliminación de cuenta).
+Migraciones `001`–`014` aplicadas (tablas, RLS, RPCs hogar, buckets Storage, Realtime, eliminación de cuenta, red social Fase 6, forked recipes).
 
 ## Variables para Flutter
 
@@ -36,7 +36,7 @@ supabase link --project-ref hxtynisikjpwlvpdgdbt
 supabase db push
 ```
 
-O aplica cada archivo en `migrations/` desde el SQL Editor, en orden `001` → `010`.
+O aplica cada archivo en `migrations/` desde el SQL Editor, en orden `001` → `014`.
 
 ## Generar tipos Dart (Supadart)
 
@@ -68,6 +68,8 @@ dart pub get && dart run supadart
 - `005_shopping.sql`: bucket `recipe-photos` + Realtime en `plan_slots` y `shopping_items`
 - `007_storage_avatars.sql`: bucket privado `avatars` (2 MB, jpeg/png/webp) + RLS para miembros del hogar
 - `010_delete_account_rpc.sql`: RPC `delete_user_account()` — supresión RGPD (borra `auth.users` y datos en cascada)
+- `013_social.sql`: `recipe_ratings`, `follows`, RLS recetas públicas, RPC `list_public_recipes`, lectura storage fotos/avatares de autores públicos
+- `014_recipe_forked_from.sql`: `forked_from_id`; recetas forkeadas no pueden ser públicas
 
 ## Pendiente (Fase 1 — plan §3d en adelante)
 

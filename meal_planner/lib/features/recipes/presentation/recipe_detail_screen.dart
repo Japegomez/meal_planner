@@ -6,6 +6,7 @@ import 'package:meal_planner/core/supabase/models/ingredient.dart';
 import 'package:meal_planner/core/supabase/models/nutrition_info.dart';
 import 'package:meal_planner/core/supabase/models/recipe_step.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_provider.dart';
+import 'package:meal_planner/features/social/presentation/social_provider.dart';
 
 class RecipeDetailScreen extends ConsumerWidget {
   const RecipeDetailScreen({required this.recipeId, super.key});
@@ -26,6 +27,8 @@ class RecipeDetailScreen extends ConsumerWidget {
           prepTime: detail.recipe.prepTime,
           cookTime: detail.recipe.cookTime,
           tags: detail.recipe.tags,
+          isPublic: detail.recipe.isPublic,
+          isForked: detail.isForked,
           ingredients: detail.ingredients,
           steps: detail.steps,
           nutrition: detail.nutrition,
@@ -37,7 +40,7 @@ class RecipeDetailScreen extends ConsumerWidget {
   }
 }
 
-class _RecipeDetailBody extends ConsumerWidget {
+class _RecipeDetailBody extends ConsumerStatefulWidget {
   const _RecipeDetailBody({
     required this.recipeId,
     required this.photoUrl,
@@ -46,6 +49,8 @@ class _RecipeDetailBody extends ConsumerWidget {
     required this.prepTime,
     required this.cookTime,
     required this.tags,
+    required this.isPublic,
+    required this.isForked,
     required this.ingredients,
     required this.steps,
     required this.nutrition,
@@ -58,16 +63,40 @@ class _RecipeDetailBody extends ConsumerWidget {
   final int? prepTime;
   final int? cookTime;
   final List<String> tags;
+  final bool isPublic;
+  final bool isForked;
   final List<Ingredient> ingredients;
   final List<RecipeStep> steps;
   final NutritionInfo? nutrition;
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<_RecipeDetailBody> createState() => _RecipeDetailBodyState();
+}
+
+class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
+  late bool _isPublic;
+  bool _isUpdatingVisibility = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isPublic = widget.isPublic;
+  }
+
+  @override
+  void didUpdateWidget(covariant _RecipeDetailBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPublic != widget.isPublic) {
+      _isPublic = widget.isPublic;
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar receta'),
-        content: Text('¿Seguro que quieres eliminar "$title"?'),
+        content: Text('¿Seguro que quieres eliminar "${widget.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -83,18 +112,89 @@ class _RecipeDetailBody extends ConsumerWidget {
 
     if (confirmed != true || !context.mounted) return;
 
-    await ref.read(recipesRepositoryProvider).deleteRecipe(recipeId);
+    await ref.read(recipesRepositoryProvider).deleteRecipe(widget.recipeId);
     ref.invalidate(recipeListProvider);
     ref.invalidate(recipeTagsProvider);
+    ref.invalidate(exploreRecipesProvider);
     if (context.mounted) context.pop();
   }
 
+  Future<void> _toggleVisibility(bool value) async {
+    if (widget.isForked && value) return;
+    if (value == _isPublic || _isUpdatingVisibility) return;
+
+    if (value) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Publicar receta'),
+          content: const Text(
+            'Esta receta será visible para todos los usuarios de MealPlanner. '
+            'Podrás despublicarla en cualquier momento.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Publicar'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    } else {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Hacer receta privada'),
+          content: const Text(
+            'La receta dejará de ser visible en Explorar. '
+            'Las valoraciones existentes se conservan.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Hacer privada'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    setState(() => _isUpdatingVisibility = true);
+    try {
+      await ref
+          .read(recipesRepositoryProvider)
+          .setRecipeVisibility(widget.recipeId, value);
+      ref.invalidate(recipeDetailProvider(widget.recipeId));
+      ref.invalidate(recipeListProvider);
+      ref.invalidate(exploreRecipesProvider);
+      ref.invalidate(publicTagsProvider);
+      if (mounted) setState(() => _isPublic = value);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cambiar visibilidad: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUpdatingVisibility = false);
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
         SliverAppBar(
-          expandedHeight: photoUrl != null ? 240 : 120,
+          expandedHeight: widget.photoUrl != null ? 240 : 120,
           pinned: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -103,18 +203,19 @@ class _RecipeDetailBody extends ConsumerWidget {
           actions: [
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              onPressed: () => context.push('/home/recipes/$recipeId/edit'),
+              onPressed: () =>
+                  context.push('/home/recipes/${widget.recipeId}/edit'),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              onPressed: () => _confirmDelete(context, ref),
+              onPressed: () => _confirmDelete(context),
             ),
           ],
           flexibleSpace: FlexibleSpaceBar(
-            title: Text(title),
-            background: photoUrl != null
+            title: Text(widget.title),
+            background: widget.photoUrl != null
                 ? CachedNetworkImage(
-                    imageUrl: photoUrl!,
+                    imageUrl: widget.photoUrl!,
                     fit: BoxFit.cover,
                     errorWidget: (_, _, _) => const SizedBox.shrink(),
                   )
@@ -133,26 +234,69 @@ class _RecipeDetailBody extends ConsumerWidget {
                   children: [
                     _InfoChip(
                       icon: Icons.people_outline,
-                      label: '$servings raciones',
+                      label: '${widget.servings} raciones',
                     ),
-                    if (prepTime != null)
+                    if (_isPublic)
+                      Chip(
+                        avatar: Icon(
+                          Icons.public,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        label: const Text('Pública'),
+                      ),
+                    if (widget.prepTime != null)
                       _InfoChip(
                         icon: Icons.timer_outlined,
-                        label: 'Prep: $prepTime min',
+                        label: 'Prep: ${widget.prepTime} min',
                       ),
-                    if (cookTime != null)
+                    if (widget.cookTime != null)
                       _InfoChip(
                         icon: Icons.local_fire_department_outlined,
-                        label: 'Cocción: $cookTime min',
+                        label: 'Cocción: ${widget.cookTime} min',
                       ),
                   ],
                 ),
-                if (tags.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                if (widget.isForked)
+                  const Card(
+                    child: ListTile(
+                      leading: Icon(Icons.bookmark_added_outlined),
+                      title: Text('Receta guardada de otro usuario'),
+                      subtitle: Text(
+                        'Las recetas forkeadas no se pueden publicar en Explorar.',
+                      ),
+                    ),
+                  )
+                else
+                  Card(
+                    child: SwitchListTile(
+                      title: const Text('Receta pública'),
+                      subtitle: Text(
+                        _isPublic
+                            ? 'Visible en Explorar para todos los usuarios'
+                            : 'Solo visible en tu recetario',
+                      ),
+                      secondary: _isUpdatingVisibility
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              _isPublic ? Icons.public : Icons.lock_outline,
+                            ),
+                      value: _isPublic,
+                      onChanged:
+                          _isUpdatingVisibility ? null : _toggleVisibility,
+                    ),
+                  ),
+                if (widget.tags.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: tags
+                    children: widget.tags
                         .map((tag) => Chip(label: Text(tag)))
                         .toList(),
                   ),
@@ -163,10 +307,10 @@ class _RecipeDetailBody extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
-                if (ingredients.isEmpty)
+                if (widget.ingredients.isEmpty)
                   const Text('Sin ingredientes')
                 else
-                  ...ingredients.asMap().entries.map(
+                  ...widget.ingredients.asMap().entries.map(
                         (entry) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Text(
@@ -180,10 +324,10 @@ class _RecipeDetailBody extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
-                if (steps.isEmpty)
+                if (widget.steps.isEmpty)
                   const Text('Sin pasos')
                 else
-                  ...steps.asMap().entries.map(
+                  ...widget.steps.asMap().entries.map(
                         (entry) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Row(
@@ -199,14 +343,14 @@ class _RecipeDetailBody extends ConsumerWidget {
                           ),
                         ),
                       ),
-                if (nutrition != null) ...[
+                if (widget.nutrition != null) ...[
                   const SizedBox(height: 24),
                   Text(
                     'Nutrición (por ración)',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
-                  _NutritionGrid(nutrition: nutrition!),
+                  _NutritionGrid(nutrition: widget.nutrition!),
                 ],
               ],
             ),

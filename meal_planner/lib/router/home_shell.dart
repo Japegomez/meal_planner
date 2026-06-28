@@ -14,7 +14,7 @@ class HomeShell extends ConsumerWidget {
       initialLocation: index == navigationShell.currentIndex,
     );
 
-    if (index == 1) {
+    if (index == 2) {
       ref.read(shoppingItemsProvider.notifier).reload();
     }
   }
@@ -27,6 +27,11 @@ class HomeShell extends ConsumerWidget {
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) => _onTap(index, ref),
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore),
+            label: 'Explorar',
+          ),
           NavigationDestination(
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book),
