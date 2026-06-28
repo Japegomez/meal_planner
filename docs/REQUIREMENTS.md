@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.7 — Fase 5 completada (lista de la compra F9–F12 en cliente)
+> **Versión:** 0.8 — Fase 6 completada (red social F13–F15 en cliente)
 > **Fecha:** Junio 2026
-> **Estado:** F1–F5 (auth, perfil, hogar, recetario, planificador, lista de la compra) en cliente; siguiente hito: publicación en stores y Fase 6 (red social)
+> **Estado:** F1–F6 en cliente; siguiente hito: publicación en stores (TestFlight / Play internal)
 
 ---
 
@@ -32,7 +32,7 @@ MealPlanner es una app móvil (iOS y Android) que permite a usuarios individuale
 - **Generar automáticamente la lista de la compra** consolidando los ingredientes de todas las recetas planificadas.
 - **Compartir el planificador** con otros miembros del hogar en tiempo real.
 
-En una fase posterior se añadirá una red social para descubrir y compartir recetas públicamente.
+En una fase posterior se añadió una red social para descubrir y compartir recetas públicamente (Fase 6, completada).
 
 ---
 
@@ -461,13 +461,17 @@ supabase
 /auth/login
 /auth/register
 /auth/forgot-password
-/home                     → Shell con bottom nav
-  /home/planner           → Planificador semanal
+/home                     → Shell con bottom nav (Explorar | Recetario | Compra | Planificador | Perfil)
+  /home/explore           → Exploración de recetas públicas
+    /home/explore/feed    → Feed de usuarios seguidos
+    /home/explore/user/:userId → Perfil público
+    /home/explore/:id     → Detalle de receta pública (valorar, fork)
   /home/recipes           → Lista del recetario
-    /home/recipes/:id     → Detalle de receta
+    /home/recipes/:id     → Detalle de receta (toggle visibilidad pública/privada)
     /home/recipes/new     → Formulario nueva receta
     /home/recipes/:id/edit
   /home/shopping          → Lista de la compra
+  /home/planner           → Planificador semanal
   /home/profile           → Perfil (avatar, hogar, cerrar sesión)
     /home/profile/edit
     /home/profile/household
@@ -477,13 +481,13 @@ supabase
 
 ---
 
-## 7. Roadmap — Fase 2 (red social)
+## 7. Red social (Fase 6 — implementada)
 
-Estas funcionalidades quedan fuera del alcance actual pero condicionan algunas decisiones de diseño (campo `is_public` en `recipes`, Row Level Security en Supabase):
+Migraciones `013_social` y `014_recipe_forked_from`. Feature en `lib/features/social/`.
 
-- **RF-SOC-01** El usuario puede marcar una receta como pública y visible para todos.
-- **RF-SOC-02** Existe una pantalla de exploración/descubrimiento de recetas públicas con buscador y filtros por etiqueta.
-- **RF-SOC-03** El usuario puede guardar una receta pública de otro usuario en su propio recetario (fork).
-- **RF-SOC-04** El usuario puede valorar recetas públicas (1-5 estrellas).
-- **RF-SOC-05** El usuario puede seguir a otros usuarios y ver sus recetas públicas en un feed.
-- **RF-SOC-06** El usuario tiene un perfil público con su foto, bio y recetas publicadas.
+- **RF-SOC-01** El usuario puede marcar una receta como pública y visible para todos (formulario y detalle). Recetas forkeadas (`forked_from_id`) no se pueden publicar.
+- **RF-SOC-02** Pantalla de exploración (`/home/explore`) con buscador, filtros por etiqueta, orden recientes/top y scroll infinito.
+- **RF-SOC-03** El usuario puede guardar una receta pública en su recetario (fork); queda privada y no republicable.
+- **RF-SOC-04** Valoración 1–5 estrellas (una por usuario y receta; no en recetas propias).
+- **RF-SOC-05** Seguir usuarios y feed en `/home/explore/feed`.
+- **RF-SOC-06** Perfil público con avatar, nombre, recetas publicadas y valoración media. Sin campo bio (no está en `profiles`).
