@@ -1,9 +1,15 @@
+import 'package:flutter/services.dart';
 import 'package:meal_planner/features/auth/domain/auth_exception.dart' as app_auth;
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 app_auth.AuthException mapAuthError(Object error) {
   if (error is app_auth.AuthException) {
     return error;
+  }
+
+  final googleSignInError = mapGoogleSignInError(error);
+  if (googleSignInError != null) {
+    return googleSignInError;
   }
 
   if (error is AuthApiException) {
@@ -32,4 +38,28 @@ app_auth.AuthException mapAuthError(Object error) {
   }
 
   return app_auth.AuthProviderException(error.toString());
+}
+
+/// Maps [PlatformException] from `google_sign_in` (e.g. ApiException: 10).
+app_auth.AuthException? mapGoogleSignInError(Object error) {
+  if (error is! PlatformException) return null;
+
+  if (error.code != 'sign_in_failed') {
+    return app_auth.AuthProviderException(
+      'No se pudo iniciar sesión con Google (${error.code}).',
+    );
+  }
+
+  final message = error.message ?? '';
+  // ApiException 10 / DEVELOPER_ERROR — SHA-1 or OAuth client mismatch on Android.
+  if (message.contains(': 10') ||
+      message.contains('10:') ||
+      message.contains('ApiException: 10') ||
+      message.contains('DEVELOPER_ERROR')) {
+    return const app_auth.AuthGoogleSignInConfigurationException();
+  }
+
+  return app_auth.AuthProviderException(
+    'No se pudo iniciar sesión con Google. Inténtalo de nuevo.',
+  );
 }

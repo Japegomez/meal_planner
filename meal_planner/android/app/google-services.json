@@ -12,7 +12,12 @@
           "package_name": "com.japegomez.meal_planner"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "271085053235-jv3gq1pvd39idlo08m363k08dbbhbl3h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCueuJ-ZiGjmpZQxav0IKQ32-zSJGIRF9Q"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "271085053235-jv3gq1pvd39idlo08m363k08dbbhbl3h.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "271085053235-ub77feus3f7sfuitv2vcv54sdiv8317b.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.japegomez.mealPlanner"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meal_planner/features/auth/data/auth_error_mapper.dart';
 import 'package:meal_planner/features/auth/domain/auth_exception.dart';
@@ -42,5 +43,16 @@ void main() {
     );
 
     expect(error, isA<AuthUserAlreadyExistsException>());
+  });
+
+  test('maps Google sign_in_failed code 10 to configuration message', () {
+    final error = mapAuthError(
+      PlatformException(
+        code: 'sign_in_failed',
+        message: 'pc2.c: 10: ',
+      ),
+    );
+
+    expect(error, isA<AuthGoogleSignInConfigurationException>());
   });
 }

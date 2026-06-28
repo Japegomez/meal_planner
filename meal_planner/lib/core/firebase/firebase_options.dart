@@ -31,7 +31,6 @@ abstract final class DefaultFirebaseOptions {
     projectId: 'mealplanner-a818e',
     storageBucket: 'mealplanner-a818e.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDLwYQiidLtLEhoYjLQApUSygXMGJ8IpJo',
     appId: '1:271085053235:ios:76b46bb2e84fcb2b4c0a46',
@@ -40,7 +39,6 @@ abstract final class DefaultFirebaseOptions {
     storageBucket: 'mealplanner-a818e.firebasestorage.app',
     iosBundleId: 'com.japegomez.mealPlanner',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDLwYQiidLtLEhoYjLQApUSygXMGJ8IpJo',
     appId: '1:271085053235:ios:76b46bb2e84fcb2b4c0a46',

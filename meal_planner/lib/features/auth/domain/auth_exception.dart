@@ -15,6 +15,15 @@ final class AuthConfigurationException extends AuthException {
   const AuthConfigurationException(super.message);
 }
 
+final class AuthGoogleSignInConfigurationException extends AuthException {
+  const AuthGoogleSignInConfigurationException()
+      : super(
+          'Google Sign-In no está configurado para esta build de Android. '
+          'Registra el SHA-1 (debug o release/Play App Signing) en Google Cloud '
+          'y Firebase, vuelve a descargar google-services.json y reinstala la app.',
+        );
+}
+
 final class AuthProviderException extends AuthException {
   const AuthProviderException(super.message);
 }
