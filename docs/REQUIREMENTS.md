@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.8 — Fase 6 completada (red social F13–F15 en cliente)
+> **Versión:** 0.9 — Fase 6 en producción de código; pulido stores y UX post-lanzamiento
 > **Fecha:** Junio 2026
-> **Estado:** F1–F6 en cliente; siguiente hito: publicación en stores (TestFlight / Play internal)
+> **Estado:** F1–F15 implementados en cliente; siguiente hito: publicación en stores (TestFlight / Play internal) y ficha de las tiendas
 
 ---
 
@@ -48,7 +48,7 @@ En una fase posterior se añadió una red social para descubrir y compartir rece
 | Autenticación | **Supabase Auth** | Email/contraseña + OAuth (Google y Sign in with Apple) en Fase 1 |
 | CI/CD y builds | **Codemagic** | Builds en la nube para iOS y Android, submit automatizado a las stores |
 | Crash reporting | **Sentry** | Captura de excepciones, breadcrumbs, performance traces y alertas; SDK Flutter oficial |
-| Analytics | **Firebase Analytics (GA4)** | Eventos de producto, gratis con límites altos; SDK Flutter oficial (`firebase_analytics`) |
+| Analytics | **Firebase Analytics (GA4)** | Eventos de producto; en Android declara uso de ID de publicidad solo para **analíticas** (`AD_ID` en manifiesto) |
 | Logs en cliente | **`logger`** (Dart) | Logs con niveles (`debug`→`error`), pretty-print en dev, redirigibles a Sentry en prod |
 | Actualizaciones forzadas | **`upgrader`** | Diálogo nativo cuando existe una versión mínima requerida en la store |
 | Valoración en tienda | **`in_app_review`** | Prompt nativo de iOS/Android tras hitos clave (ej. primera semana completada) |
@@ -99,7 +99,7 @@ Un **hogar** es un espacio compartido que agrupa un planificador semanal y una l
 
 ### 3.3 Recetario
 
-El **recetario** es la colección personal de recetas de cada usuario. Las recetas no se comparten hasta la Fase 2.
+El **recetario** es la colección personal de recetas de cada usuario. Las recetas pueden ser **privadas** o **públicas** (Fase 6).
 
 #### Campos de una receta
 
@@ -168,7 +168,7 @@ La lista de la compra está asociada al hogar (o al usuario individual) y **no e
 
 **RF-SHOP-01** Cuando se añade una receta al planificador, sus ingredientes (escalados según las raciones elegidas) se agregan automáticamente a la lista de la compra.  
 **RF-SHOP-02** Los ingredientes se agrupan visualmente por su **categoría** (Verduras, Lácteos, etc.).  
-**RF-SHOP-03** Si un mismo ingrediente ya existe en la lista (mismo nombre y unidad), su cantidad se suma en lugar de duplicarse.  
+**RF-SHOP-03** Si el mismo ingrediente aparece en varias comidas planificadas, cada asignación genera ítems vinculados por `plan_slot_id` (pueden mostrarse filas separadas con el mismo nombre/unidad).  
 **RF-SHOP-04** El usuario puede añadir ítems manualmente (sin estar vinculados a ninguna receta).  
 **RF-SHOP-05** El usuario puede editar la cantidad/unidad/nombre de cualquier ítem.  
 **RF-SHOP-06** El usuario puede marcar ítems como **comprados** (tachado visual). Los ítems comprados se colapsan al final de su categoría.  
@@ -178,7 +178,7 @@ La lista de la compra está asociada al hogar (o al usuario individual) y **no e
 **RF-SHOP-10** El usuario puede **exportar la lista** como texto plano y compartirla por WhatsApp u otras apps del sistema (usando el `share_plus` de Flutter).  
 **RF-SHOP-11** En modo hogar, todos los miembros ven la misma lista en tiempo real y pueden marcar/desmarcar ítems.
 
-> **Nota de implementación — lista de la compra:** `ShoppingRepository` + `ShoppingItemsNotifier` (`shopping_provider.dart`). Modelos Supadart en `core/supabase/models/`. Realtime: canal `shopping_items:{listId}` filtrado por `shopping_list_id`. Consolidación al añadir desde planificador en `PlannerRepository._syncShoppingListAdd` (nombre case-insensitive + misma unidad). Pendiente: restar cantidad al eliminar slot cuando el ítem esté consolidado.  
+> **Nota de implementación — lista de la compra:** `ShoppingRepository` + `ShoppingItemsNotifier` (`shopping_provider.dart`). Modelos Supadart en `core/supabase/models/`. Realtime: canal `shopping_items:{listId}`. Al añadir desde planificador: `_syncShoppingListAdd` inserta filas con `plan_slot_id`. Al quitar: `_syncShoppingListRemove` borra por slot o resta cantidades en datos legacy; la UI se refresca con `reload()` al cambiar el planificador o al abrir la tab Compra. Compartir en iOS requiere `sharePositionOrigin` en `share_plus`.
 
 ---
 
@@ -376,9 +376,13 @@ lib/
 │   │   ├── domain/            # slot_item.dart, planner_constants.dart
 │   │   └── presentation/      # planner_screen, recipe_picker, meal_slot, recipe_palette, servings_dialog
 │   │
-│   └── shopping/
-│       ├── data/              # shopping_repository.dart
-│       └── presentation/      # shopping_list_screen, shopping_provider, add_edit_item_sheet, shopping_item_tile
+│   ├── shopping/
+│   │   ├── data/              # shopping_repository.dart
+│   │   └── presentation/      # shopping_list_screen, shopping_provider, add_edit_item_sheet, shopping_item_tile
+│   │
+│   └── social/
+│       ├── data/              # social_repository.dart
+│       └── presentation/      # explore, feed, public profile, ratings, fork
 │
 └── router/
     └── app_router.dart        # go_router: rutas y guards de auth
@@ -414,12 +418,14 @@ lib/
 Usuario selecciona receta + slot + raciones
         │
         ▼
-PlannerNotifier.addRecipeToSlot(slotId, recipeId, servings)
+PlanSlotsNotifier.addSlot(...)
         │
-        ├─► PlannerRepository.upsertSlot(...)        → Supabase: plan_slots
+        ├─► PlannerRepository.addSlot(...)           → Supabase: plan_slots
         │
-        └─► PlannerRepository._syncShoppingListAdd(...)  → Supabase: shopping_items
-              (escala ingredientes × servings / recipe.servings; consolida por nombre+unidad)
+        └─► PlannerRepository._syncShoppingListAdd(...) → Supabase: shopping_items
+              (escala × servings/recipe.servings; una fila por ingrediente con plan_slot_id)
+        │
+        └─► shoppingItemsProvider.reload()
 ```
 
 ### Realtime (hogar compartido)

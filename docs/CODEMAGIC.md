@@ -171,6 +171,8 @@ Revisa el log en **Publishing** al final del build. iOS puede tardar 5–30 min 
 | Google Sign-In en release | Añadir SHA-1 release en Google Cloud |
 | iOS signing failed | Bundle ID + Apple Developer conectado |
 | Solo corre en `main` | Merge `develop` → `main` o build manual en `main` |
+| `Version code N has already been used` (Play) | Revisa log *Set build version*: debe consultar **todos los tracks** y usar `max(Play, BUILD_NUMBER)+1`. Verifica grupo `google_play` y credenciales JSON |
+| Play Console: declaración ID publicidad vs manifiesto | Firebase Analytics usa `AD_ID` solo para analíticas. Manifiesto: permiso `AD_ID` + `google_analytics_adid_collection_enabled=true`. En Play: **Sí → Analíticas** (no anuncios) |
 
 ---
 
