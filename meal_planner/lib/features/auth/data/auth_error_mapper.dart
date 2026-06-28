@@ -59,7 +59,7 @@ app_auth.AuthException? mapGoogleSignInError(Object error) {
     return const app_auth.AuthGoogleSignInConfigurationException();
   }
 
-  return app_auth.AuthProviderException(
+  return const app_auth.AuthProviderException(
     'No se pudo iniciar sesión con Google. Inténtalo de nuevo.',
   );
 }
