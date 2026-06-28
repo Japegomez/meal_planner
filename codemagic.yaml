@@ -88,7 +88,6 @@ workflows:
           ls -la "$CM_EXPORT_DIR"
     artifacts:
       - $CM_EXPORT_DIR/app-release.aab
-      - $CM_BUILD_DIR/meal_planner/build/app/outputs/bundle/release/*.aab
       - $CM_BUILD_DIR/meal_planner/build/**/outputs/**/mapping.txt
       - flutter_drive.log
     publishing:
@@ -214,9 +213,8 @@ workflows:
           cp "$IPA" "$CM_EXPORT_DIR/app-release.ipa"
           ls -la "$CM_EXPORT_DIR"
     artifacts:
+      # Single IPA only — App Store Connect publishing uploads every .ipa artifact
       - $CM_EXPORT_DIR/app-release.ipa
-      - meal_planner/build/ios/ipa/*.ipa
-      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
     publishing:
