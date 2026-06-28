@@ -54,6 +54,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       removePhoto: false,
       pendingPhoto: file,
       isPublic: data.isPublic,
+      forkedFromId: data.forkedFromId,
     );
     ref.read(recipeFormProvider(widget.recipeId).notifier).updateData(updated);
   }
@@ -72,6 +73,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       existingPhotoPath: data.existingPhotoPath,
       removePhoto: true,
       isPublic: data.isPublic,
+      forkedFromId: data.forkedFromId,
     );
     ref.read(recipeFormProvider(widget.recipeId).notifier).updateData(updated);
   }
@@ -109,10 +111,12 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       removePhoto: data.removePhoto,
       pendingPhoto: data.pendingPhoto,
       isPublic: data.isPublic,
+      forkedFromId: data.forkedFromId,
     );
   }
 
   Future<void> _togglePublic(RecipeFormData data, bool value) async {
+    if (!data.canPublish) return;
     if (value) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -130,6 +134,27 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Publicar'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    } else if (data.isPublic) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Hacer receta privada'),
+          content: const Text(
+            'La receta dejará de ser visible en Explorar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Hacer privada'),
             ),
           ],
         ),
@@ -481,17 +506,28 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
             },
           ),
           const SizedBox(height: 24),
-          Card(
-            child: SwitchListTile(
-              title: const Text('Publicar receta'),
-              subtitle: const Text(
-                'Visible para todos los usuarios en Explorar',
+          if (!data.canPublish)
+            const Card(
+              child: ListTile(
+                leading: Icon(Icons.bookmark_added_outlined),
+                title: Text('Receta guardada de otro usuario'),
+                subtitle: Text(
+                  'Las recetas forkeadas no se pueden publicar en Explorar.',
+                ),
               ),
-              secondary: const Icon(Icons.public),
-              value: data.isPublic,
-              onChanged: (value) => _togglePublic(data, value),
+            )
+          else
+            Card(
+              child: SwitchListTile(
+                title: const Text('Publicar receta'),
+                subtitle: const Text(
+                  'Visible para todos los usuarios en Explorar',
+                ),
+                secondary: const Icon(Icons.public),
+                value: data.isPublic,
+                onChanged: (value) => _togglePublic(data, value),
+              ),
             ),
-          ),
           const SizedBox(height: 32),
         ],
       ),

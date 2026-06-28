@@ -10,6 +10,7 @@ class RecipeDetail {
     required this.steps,
     this.nutrition,
     this.photoDisplayUrl,
+    this.forkedFromId,
   });
 
   final Recipe recipe;
@@ -17,4 +18,7 @@ class RecipeDetail {
   final List<RecipeStep> steps;
   final NutritionInfo? nutrition;
   final String? photoDisplayUrl;
+  final String? forkedFromId;
+
+  bool get isForked => forkedFromId != null;
 }

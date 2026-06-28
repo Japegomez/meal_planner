@@ -150,8 +150,8 @@ class SocialRepository {
 
     final recipeData = await supabase
         .from(Recipe.table_name)
-        .insert(
-          Recipe.insert(
+        .insert({
+          ...Recipe.insert(
             userId: _userId,
             title: source.title,
             servings: source.servings,
@@ -160,7 +160,8 @@ class SocialRepository {
             tags: source.tags,
             isPublic: false,
           ),
-        )
+          'forked_from_id': publicRecipeId,
+        })
         .select()
         .single();
 

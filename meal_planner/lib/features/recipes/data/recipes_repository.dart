@@ -60,6 +60,7 @@ class RecipesRepository {
     final recipe = Recipe.converterSingle(
       Map<String, dynamic>.from(recipeData),
     );
+    final forkedFromId = recipeData['forked_from_id']?.toString();
 
     final ingredientsData = await supabase
         .from(Ingredient.table_name)
@@ -95,6 +96,7 @@ class RecipesRepository {
             )
           : null,
       photoDisplayUrl: photoDisplayUrl,
+      forkedFromId: forkedFromId,
     );
   }
 
@@ -133,6 +135,27 @@ class RecipesRepository {
     return recipeId;
   }
 
+  Future<void> setRecipeVisibility(String id, bool isPublic) async {
+    if (isPublic) {
+      final recipeData = await supabase
+          .from(Recipe.table_name)
+          .select('forked_from_id')
+          .eq(Recipe.c_id, id)
+          .eq(Recipe.c_userId, _userId)
+          .maybeSingle();
+
+      if (recipeData?['forked_from_id'] != null) {
+        throw Exception('Las recetas guardadas de otros usuarios no se pueden publicar');
+      }
+    }
+
+    await supabase
+        .from(Recipe.table_name)
+        .update(Recipe.update(isPublic: isPublic))
+        .eq(Recipe.c_id, id)
+        .eq(Recipe.c_userId, _userId);
+  }
+
   Future<void> updateRecipe(String id, RecipeFormData form) async {
     final validationError = form.validate();
     if (validationError != null) throw Exception(validationError);
@@ -146,7 +169,7 @@ class RecipesRepository {
             prepTime: form.prepTime,
             cookTime: form.cookTime,
             tags: form.tags,
-            isPublic: form.isPublic,
+            isPublic: form.canPublish ? form.isPublic : false,
           ),
         )
         .eq(Recipe.c_id, id)
@@ -358,6 +381,7 @@ class RecipesRepository {
       ),
       existingPhotoPath: recipe.photoUrl,
       isPublic: recipe.isPublic,
+      forkedFromId: detail.forkedFromId,
     );
   }
 }

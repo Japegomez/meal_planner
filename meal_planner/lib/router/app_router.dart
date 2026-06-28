@@ -82,6 +82,32 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: '/home/explore',
+                builder: (_, _) => const ExploreScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'feed',
+                    builder: (_, _) => const FeedScreen(),
+                  ),
+                  GoRoute(
+                    path: 'user/:userId',
+                    builder: (_, state) => PublicProfileScreen(
+                      userId: state.pathParameters['userId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, state) => PublicRecipeDetailScreen(
+                      recipeId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/home/recipes',
                 builder: (_, _) => const RecipeListScreen(),
                 routes: [
@@ -102,32 +128,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                         ),
                       ),
                     ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/home/explore',
-                builder: (_, _) => const ExploreScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'feed',
-                    builder: (_, _) => const FeedScreen(),
-                  ),
-                  GoRoute(
-                    path: 'user/:userId',
-                    builder: (_, state) => PublicProfileScreen(
-                      userId: state.pathParameters['userId']!,
-                    ),
-                  ),
-                  GoRoute(
-                    path: ':id',
-                    builder: (_, state) => PublicRecipeDetailScreen(
-                      recipeId: state.pathParameters['id']!,
-                    ),
                   ),
                 ],
               ),

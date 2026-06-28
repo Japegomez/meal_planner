@@ -28,14 +28,14 @@ class HomeShell extends ConsumerWidget {
         onDestinationSelected: (index) => _onTap(index, ref),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Recetario',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.explore_outlined),
             selectedIcon: Icon(Icons.explore),
             label: 'Explorar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book),
+            label: 'Recetario',
           ),
           NavigationDestination(
             icon: Icon(Icons.shopping_cart_outlined),
