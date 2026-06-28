@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meal_planner/core/config/env.dart';
+import 'package:meal_planner/core/widgets/password_text_field.dart';
 import 'package:meal_planner/features/auth/domain/auth_exception.dart';
 import 'package:meal_planner/features/auth/presentation/auth_provider.dart';
 
@@ -137,13 +138,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    PasswordTextField(
                       controller: _passwordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Contraseña',
-                        border: OutlineInputBorder(),
-                      ),
-                      obscureText: true,
+                      labelText: 'Contraseña',
                       autofillHints: const [AutofillHints.password],
                       enabled: !_isLoading && Env.hasSupabase,
                       validator: (value) {
