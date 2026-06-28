@@ -35,12 +35,22 @@ class ShoppingListScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _shareList(List<ShoppingItem> items) async {
+  Future<void> _shareList(
+    BuildContext context,
+    List<ShoppingItem> items,
+  ) async {
     if (items.isEmpty) return;
 
     final grouped = groupShoppingItemsByCategory(items);
     final text = formatShoppingListForShare(grouped);
-    await Share.share(text);
+
+    // iOS (especially iPad) requires an anchor rect for the share sheet.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : const Rect.fromLTWH(0, 0, 1, 1);
+
+    await Share.share(text, sharePositionOrigin: origin);
   }
 
   Future<void> _openAddSheet(BuildContext context, WidgetRef ref) async {
@@ -67,7 +77,7 @@ class ShoppingListScreen extends ConsumerWidget {
         title: const Text('Lista de la compra'),
         actions: [
           IconButton(
-            onPressed: isEmpty ? null : () => _shareList(items),
+            onPressed: isEmpty ? null : () => _shareList(context, items),
             icon: const Icon(Icons.share_outlined),
             tooltip: 'Compartir lista',
           ),

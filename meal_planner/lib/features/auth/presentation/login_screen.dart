@@ -40,6 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorMessage = null;
     });
 
+    ref.read(authOperationInProgressProvider.notifier).state = true;
     try {
       await action();
       if (mounted) context.go('/');
@@ -50,6 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       setState(() => _errorMessage = e.toString());
     } finally {
+      ref.read(authOperationInProgressProvider.notifier).state = false;
       if (mounted) setState(() => _isLoading = false);
     }
   }

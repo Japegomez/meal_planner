@@ -29,13 +29,27 @@ const ingredientCategories = [
 ];
 
 const suggestedRecipeTags = [
-  'rápida',
   'vegetariana',
   'vegano',
+  'pescetariana',
   'sin gluten',
+  'sin lactosa',
+  'sin huevo',
+  'sin frutos secos',
+  'sin soja',
+  'sin marisco',
+  'sin azúcar',
   'alto en proteínas',
+  'baja en calorías',
+  'baja en carbohidratos',
+  'alta en fibra',
+  'mediterránea',
+  'rápida',
   'económica',
   'batch cooking',
+  'para congelar',
+  'picante',
+  'para niños',
 ];
 
 const customUnitOption = 'Otra';

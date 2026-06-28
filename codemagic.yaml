@@ -50,16 +50,14 @@ workflows:
         script: |
           BUILD_NUMBER_OFFSET="${BUILD_NUMBER_OFFSET:-0}"
           APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')
-          CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
           LATEST_PLAY=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" --tracks="$GOOGLE_PLAY_TRACK" 2>/dev/null || true)
           if [ -n "$LATEST_PLAY" ] && [ "$LATEST_PLAY" -gt 0 ] 2>/dev/null; then
-            STORE_NEXT=$(($LATEST_PLAY + 1))
-            if [ "$STORE_NEXT" -gt "$CM_BUILD_NUM" ]; then
-              CM_BUILD_NUM=$STORE_NEXT
-            fi
+            CM_BUILD_NUM=$(($LATEST_PLAY + 1))
             echo "Build number synced with Google Play ($GOOGLE_PLAY_TRACK, latest $LATEST_PLAY -> $CM_BUILD_NUM)"
           else
-            echo "Build number from Codemagic (no Play history): $CM_BUILD_NUM"
+            # BUILD_NUMBER is per-workflow; PROJECT_BUILD_NUMBER increments for every workflow on each push (+2 if Android+iOS run together)
+            CM_BUILD_NUM=$(($BUILD_NUMBER + BUILD_NUMBER_OFFSET))
+            echo "Build number from Codemagic workflow counter (no Play history): $CM_BUILD_NUM"
           fi
           echo "APP_VERSION=$APP_VERSION" >> $CM_ENV
           echo "CM_BUILD_NUM=$CM_BUILD_NUM" >> $CM_ENV
@@ -154,23 +152,21 @@ workflows:
         script: |
           BUILD_NUMBER_OFFSET="${BUILD_NUMBER_OFFSET:-0}"
           APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')
-          CM_BUILD_NUM=$(($PROJECT_BUILD_NUMBER + BUILD_NUMBER_OFFSET))
           if [ -n "$APP_STORE_APPLE_ID" ] && [ "$APP_STORE_APPLE_ID" != "0" ]; then
             LATEST_IOS=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || true)
             if [ -z "$LATEST_IOS" ] || [ "$LATEST_IOS" = "0" ]; then
               LATEST_IOS=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || true)
             fi
             if [ -n "$LATEST_IOS" ] && [ "$LATEST_IOS" -gt 0 ] 2>/dev/null; then
-              STORE_NEXT=$(($LATEST_IOS + 1))
-              if [ "$STORE_NEXT" -gt "$CM_BUILD_NUM" ]; then
-                CM_BUILD_NUM=$STORE_NEXT
-              fi
+              CM_BUILD_NUM=$(($LATEST_IOS + 1))
               echo "Build number synced with App Store Connect (latest $LATEST_IOS -> $CM_BUILD_NUM)"
             else
-              echo "Build number from Codemagic (App Store Connect returned no builds): $CM_BUILD_NUM"
+              CM_BUILD_NUM=$(($BUILD_NUMBER + BUILD_NUMBER_OFFSET))
+              echo "Build number from Codemagic workflow counter (App Store Connect returned no builds): $CM_BUILD_NUM"
             fi
           else
-            echo "WARNING: Set APP_STORE_APPLE_ID in codemagic.yaml to sync with TestFlight (using Codemagic counter: $CM_BUILD_NUM)"
+            CM_BUILD_NUM=$(($BUILD_NUMBER + BUILD_NUMBER_OFFSET))
+            echo "WARNING: Set APP_STORE_APPLE_ID in codemagic.yaml to sync with TestFlight (using workflow counter: $CM_BUILD_NUM)"
           fi
           echo "APP_VERSION=$APP_VERSION" >> $CM_ENV
           echo "CM_BUILD_NUM=$CM_BUILD_NUM" >> $CM_ENV

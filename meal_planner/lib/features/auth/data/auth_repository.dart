@@ -7,10 +7,11 @@ import 'package:flutter/foundation.dart'
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:meal_planner/core/config/env.dart';
 import 'package:meal_planner/core/supabase/supabase_client.dart';
+import 'package:meal_planner/features/auth/data/auth_error_mapper.dart';
 import 'package:meal_planner/features/auth/domain/auth_exception.dart';
 import 'package:meal_planner/features/auth/domain/auth_state.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState, AuthException;
 
 class AuthRepository {
   GoogleSignIn? get _googleSignIn {
@@ -33,22 +34,40 @@ class AuthRepository {
   Future<AuthResponse> signInWithEmail({
     required String email,
     required String password,
-  }) =>
-      supabase.auth.signInWithPassword(email: email, password: password);
+  }) async {
+    try {
+      return await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+    } catch (e) {
+      throw mapAuthError(e);
+    }
+  }
 
   Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
     required String username,
-  }) =>
-      supabase.auth.signUp(
+  }) async {
+    try {
+      return await supabase.auth.signUp(
         email: email,
         password: password,
         data: {'username': username},
       );
+    } catch (e) {
+      throw mapAuthError(e);
+    }
+  }
 
-  Future<void> sendPasswordResetEmail(String email) =>
-      supabase.auth.resetPasswordForEmail(email);
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await supabase.auth.resetPasswordForEmail(email);
+    } catch (e) {
+      throw mapAuthError(e);
+    }
+  }
 
   Future<AuthResponse> signInWithGoogle() async {
     final googleSignIn = _googleSignIn;
@@ -69,11 +88,17 @@ class AuthRepository {
       throw const AuthProviderException('Google Sign-In returned no id token');
     }
 
-    return supabase.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: idToken,
-      accessToken: googleAuth.accessToken,
-    );
+    try {
+      return await supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: googleAuth.accessToken,
+      );
+    } on AuthException {
+      rethrow;
+    } catch (e) {
+      throw mapAuthError(e);
+    }
   }
 
   Future<AuthResponse> signInWithApple() async {
@@ -101,11 +126,17 @@ class AuthRepository {
       throw const AuthProviderException('Apple Sign-In returned no id token');
     }
 
-    return supabase.auth.signInWithIdToken(
-      provider: OAuthProvider.apple,
-      idToken: idToken,
-      nonce: rawNonce,
-    );
+    try {
+      return await supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+    } on AuthException {
+      rethrow;
+    } catch (e) {
+      throw mapAuthError(e);
+    }
   }
 
   Future<void> signOut() async {

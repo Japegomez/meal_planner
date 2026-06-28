@@ -42,6 +42,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
+    ref.read(authOperationInProgressProvider.notifier).state = true;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -61,6 +62,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } catch (e) {
       setState(() => _errorMessage = e.toString());
     } finally {
+      ref.read(authOperationInProgressProvider.notifier).state = false;
       if (mounted) setState(() => _isLoading = false);
     }
   }

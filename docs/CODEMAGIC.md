@@ -77,16 +77,17 @@ Pipeline: `flutter clean` → `pub get` → `analyze lib test` → `test` → **
 
 ### Versionado automático (versionCode / build number)
 
-En CI, el **build number** no viene del `+1` de `pubspec.yaml`: Codemagic lo autoincrementa con `PROJECT_BUILD_NUMBER` (contador global del proyecto en Codemagic).
+En CI, el **build number** no viene del `+1` de `pubspec.yaml`: Codemagic lo calcula en el paso *Set build version*.
 
 | Campo | Origen en CI |
 |-------|----------------|
 | **versionName** / `CFBundleShortVersionString` | Parte antes del `+` en `pubspec.yaml` (p. ej. `1.0.0`) |
-| **versionCode** / `CFBundleVersion` | `max(PROJECT_BUILD_NUMBER, último en tienda) + 1` si hay historial en Play/TestFlight |
+| **versionCode** / `CFBundleVersion` | `último en tienda + 1` si hay historial; si no, `BUILD_NUMBER` del workflow |
 
 - Cambias la versión visible (`1.0.0` → `1.0.1`) editando `pubspec.yaml` y haciendo merge a `main`.
 - No hace falta tocar el número tras el `+` para releases de Codemagic; el `+1` del repo solo aplica a builds locales.
-- Si ya subiste builds a Play/TestFlight y el contador de Codemagic es menor, sube `BUILD_NUMBER_OFFSET` en `codemagic.yaml` (p. ej. `10` si el último versionCode en Play fue `10`).
+- Si ya subiste builds a Play/TestFlight y el contador del workflow es menor, sube `BUILD_NUMBER_OFFSET` en `codemagic.yaml` (p. ej. `10` si el último versionCode en Play fue `10`).
+- **No uses `PROJECT_BUILD_NUMBER`:** cada push a `main` lanza Android **e** iOS, y ese contador sube 2 por push aunque solo publiques una plataforma.
 
 En el log del paso **Set build version** verás: `Release version: 1.0.0+42`.
 
@@ -139,12 +140,12 @@ Actualiza en `codemagic.yaml`:
 APP_STORE_APPLE_ID: 6750123456
 ```
 
-Sin esto, el build number usa `PROJECT_BUILD_NUMBER` (funciona, pero no sincroniza con TestFlight).
+Sin esto, el build number usa `BUILD_NUMBER` del workflow (funciona, pero no sincroniza con TestFlight).
 
 ### Versionado al publicar
 
-- **Android:** `google-play get-latest-build-number` + 1 (track `internal`). Si no hay historial, usa `PROJECT_BUILD_NUMBER`.
-- **iOS:** `get-latest-testflight-build-number` + 1 si `APP_STORE_APPLE_ID` está configurado; si no, solo `PROJECT_BUILD_NUMBER` (puede chocar con TestFlight).
+- **Android:** `google-play get-latest-build-number` + 1 (track `internal`). Si no hay historial, usa `BUILD_NUMBER` del workflow Android.
+- **iOS:** `get-latest-testflight-build-number` + 1 si `APP_STORE_APPLE_ID` está configurado; si no, `BUILD_NUMBER` del workflow iOS.
 
 ### Flujo tras merge a `main`
 

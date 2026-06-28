@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meal_planner/core/auth/session_lifecycle_handler.dart';
 import 'package:meal_planner/core/theme/app_theme.dart';
 import 'package:meal_planner/core/widgets/connectivity_banner.dart';
 import 'package:meal_planner/router/app_router.dart';
@@ -12,18 +13,20 @@ class MealPlannerApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
-    return MaterialApp.router(
-      title: 'MealPlanner',
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      routerConfig: router,
-      builder: (context, child) {
-        return UpgradeAlert(
-          child: ConnectivityBanner(
-            child: child ?? const SizedBox.shrink(),
-          ),
-        );
-      },
+    return SessionLifecycleHandler(
+      child: MaterialApp.router(
+        title: 'MealPlanner',
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        routerConfig: router,
+        builder: (context, child) {
+          return UpgradeAlert(
+            child: ConnectivityBanner(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          );
+        },
+      ),
     );
   }
 }
