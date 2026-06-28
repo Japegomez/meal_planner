@@ -15,40 +15,12 @@ class PlannerRepository {
   }) async {
     final dateStr = _formatDate(weekStart);
 
-    final Map<String, dynamic>? existing;
-    if (householdId != null) {
-      existing = await supabase
-          .from(WeeklyPlan.table_name)
-          .select()
-          .eq(WeeklyPlan.c_householdId, householdId)
-          .eq(WeeklyPlan.c_weekStart, dateStr)
-          .maybeSingle();
-    } else {
-      existing = await supabase
-          .from(WeeklyPlan.table_name)
-          .select()
-          .eq(WeeklyPlan.c_userId, userId)
-          .eq(WeeklyPlan.c_weekStart, dateStr)
-          .maybeSingle();
-    }
+    final data = await supabase.rpc(
+      'get_or_create_weekly_plan',
+      params: {'week_start': dateStr},
+    );
 
-    if (existing != null) {
-      return WeeklyPlan.fromJson(existing);
-    }
-
-    final data = await supabase
-        .from(WeeklyPlan.table_name)
-        .insert(
-          WeeklyPlan.insert(
-            weekStart: weekStart,
-            householdId: householdId,
-            userId: householdId == null ? userId : null,
-          ),
-        )
-        .select()
-        .single();
-
-    return WeeklyPlan.fromJson(data);
+    return WeeklyPlan.fromJson(Map<String, dynamic>.from(data as Map));
   }
 
   Future<List<SlotItem>> getSlotsForPlan(String planId) async {
