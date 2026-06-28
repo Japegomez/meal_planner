@@ -15,38 +15,10 @@ class PlannerRepository {
   }) async {
     final dateStr = _formatDate(weekStart);
 
-    final Map<String, dynamic>? existing;
-    if (householdId != null) {
-      existing = await supabase
-          .from(WeeklyPlan.table_name)
-          .select()
-          .eq(WeeklyPlan.c_householdId, householdId)
-          .eq(WeeklyPlan.c_weekStart, dateStr)
-          .maybeSingle();
-    } else {
-      existing = await supabase
-          .from(WeeklyPlan.table_name)
-          .select()
-          .eq(WeeklyPlan.c_userId, userId)
-          .eq(WeeklyPlan.c_weekStart, dateStr)
-          .maybeSingle();
-    }
-
-    if (existing != null) {
-      return WeeklyPlan.fromJson(existing);
-    }
-
-    final data = await supabase
-        .from(WeeklyPlan.table_name)
-        .insert(
-          WeeklyPlan.insert(
-            weekStart: weekStart,
-            householdId: householdId,
-            userId: householdId == null ? userId : null,
-          ),
-        )
-        .select()
-        .single();
+    final data = await supabase.rpc<Map<String, dynamic>>(
+      'get_or_create_weekly_plan',
+      params: {'week_start': dateStr},
+    );
 
     return WeeklyPlan.fromJson(data);
   }
