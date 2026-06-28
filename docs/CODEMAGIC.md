@@ -82,11 +82,12 @@ En CI, el **build number** no viene del `+1` de `pubspec.yaml`: Codemagic lo cal
 | Campo | Origen en CI |
 |-------|----------------|
 | **versionName** / `CFBundleShortVersionString` | Parte antes del `+` en `pubspec.yaml` (p. ej. `1.0.0`) |
-| **versionCode** / `CFBundleVersion` | `último en tienda + 1` si hay historial; si no, `BUILD_NUMBER` del workflow |
+| **versionCode** / `CFBundleVersion` | `max(último en Play en todos los tracks, BUILD_NUMBER del workflow) + 1` |
 
 - Cambias la versión visible (`1.0.0` → `1.0.1`) editando `pubspec.yaml` y haciendo merge a `main`.
 - No hace falta tocar el número tras el `+` para releases de Codemagic; el `+1` del repo solo aplica a builds locales.
-- Si ya subiste builds a Play/TestFlight y el contador del workflow es menor, sube `BUILD_NUMBER_OFFSET` en `codemagic.yaml` (p. ej. `10` si el último versionCode en Play fue `10`).
+- Android consulta **todos los tracks** de Play (no solo `internal`): el `versionCode` es global por app.
+- Si la API de Play falla, se usa el contador del workflow; en ese caso sube `BUILD_NUMBER_OFFSET` si hace falta.
 - **No uses `PROJECT_BUILD_NUMBER`:** cada push a `main` lanza Android **e** iOS, y ese contador sube 2 por push aunque solo publiques una plataforma.
 
 En el log del paso **Set build version** verás: `Release version: 1.0.0+42`.
@@ -144,7 +145,7 @@ Sin esto, el build number usa `BUILD_NUMBER` del workflow (funciona, pero no sin
 
 ### Versionado al publicar
 
-- **Android:** `google-play get-latest-build-number` + 1 (track `internal`). Si no hay historial, usa `BUILD_NUMBER` del workflow Android.
+- **Android:** `google-play get-latest-build-number` en **todos los tracks** + 1; si la API falla, `max(BUILD_NUMBER, …) + 1`. Publica en track `internal` (`GOOGLE_PLAY_TRACK`).
 - **iOS:** `get-latest-testflight-build-number` + 1 si `APP_STORE_APPLE_ID` está configurado; si no, `BUILD_NUMBER` del workflow iOS.
 
 ### Flujo tras merge a `main`
