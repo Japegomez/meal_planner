@@ -28,6 +28,19 @@ gradlew signingReport
 
 Add release SHA-1 from Codemagic keystore when available — ver [`CODEMAGIC.md` §3c](CODEMAGIC.md#3c-sha-1-release--google-cloud-obligatorio-para-google-sign-in).
 
+**Builds de Play Store (pruebas internas / producción):** además del SHA-1 del keystore de subida, registra el **certificado de firma de la app** de Play Console → **Configuración → Integridad de la app → Certificado de firma de la app**. Sin ese SHA-1, Google Sign-In falla con `PlatformException(sign_in_failed, …: 10…)`.
+
+Tras añadir huellas en **Firebase** → Project settings → Your apps → Android → Add fingerprint, vuelve a descargar `google-services.json` (`flutterfire configure`) y comprueba que `oauth_client` ya no está vacío.
+
+### Troubleshooting — `sign_in_failed` / código 10
+
+| Síntoma | Causa habitual | Solución |
+|---------|----------------|----------|
+| `PlatformException(sign_in_failed, pc2.c: 10: , null, null)` | `DEVELOPER_ERROR`: SHA-1 del certificado con el que está firmada la APK no está en Google Cloud | Añade SHA-1 debug (`gradlew signingReport`) o release/Play App Signing en Firebase y en el cliente OAuth **Android** |
+| `oauth_client: []` en `google-services.json` | Firebase no tiene huellas SHA-1 registradas | Añade fingerprints en Firebase Console y regenera el JSON |
+| Funciona en debug pero no en Play | Falta SHA-1 del certificado de **App signing** de Google Play | Copia SHA-1 desde Play Console → Integridad de la app |
+| Botón Google no aparece | Falta `GOOGLE_WEB_CLIENT_ID` en `--dart-define` / Codemagic | Grupo env `google` en CI |
+
 ### 2. Supabase Auth ✅
 
 Dashboard → Authentication → Providers → **Google**:

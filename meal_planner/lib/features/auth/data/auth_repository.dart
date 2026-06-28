@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:meal_planner/core/config/env.dart';
 import 'package:meal_planner/core/supabase/supabase_client.dart';
@@ -14,11 +15,14 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState, AuthException;
 
 class AuthRepository {
+  GoogleSignIn? _googleSignInInstance;
+
   GoogleSignIn? get _googleSignIn {
     if (!Env.hasGoogleSignIn) return null;
-    return GoogleSignIn(
+    return _googleSignInInstance ??= GoogleSignIn(
       serverClientId: Env.googleWebClientId,
       clientId: _googleClientId,
+      scopes: const ['email', 'profile', 'openid'],
     );
   }
 
@@ -77,27 +81,34 @@ class AuthRepository {
       );
     }
 
-    final googleUser = await googleSignIn.signIn();
-    if (googleUser == null) {
-      throw const AuthCancelledException();
-    }
-
-    final googleAuth = await googleUser.authentication;
-    final idToken = googleAuth.idToken;
-    if (idToken == null) {
-      throw const AuthProviderException('Google Sign-In returned no id token');
-    }
-
     try {
-      return await supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-        accessToken: googleAuth.accessToken,
-      );
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        throw const AuthCancelledException();
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null) {
+        throw const AuthProviderException('Google Sign-In returned no id token');
+      }
+
+      try {
+        return await supabase.auth.signInWithIdToken(
+          provider: OAuthProvider.google,
+          idToken: idToken,
+          accessToken: googleAuth.accessToken,
+        );
+      } on AuthException {
+        rethrow;
+      } catch (e) {
+        throw mapAuthError(e);
+      }
+    } on PlatformException catch (e) {
+      throw mapGoogleSignInError(e) ??
+          AuthProviderException(e.message ?? e.code);
     } on AuthException {
       rethrow;
-    } catch (e) {
-      throw mapAuthError(e);
     }
   }
 
