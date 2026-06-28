@@ -310,21 +310,8 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Ingredientes', style: Theme.of(context).textTheme.titleMedium),
-              TextButton.icon(
-                onPressed: () {
-                  final copy = _copyData(data);
-                  copy.ingredients.add(IngredientFormItem());
-                  _updateForm(copy);
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Añadir'),
-              ),
-            ],
-          ),
+          Text('Ingredientes', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
           ReorderableListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -357,22 +344,21 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
               );
             },
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Pasos', style: Theme.of(context).textTheme.titleMedium),
-              TextButton.icon(
-                onPressed: () {
-                  final copy = _copyData(data);
-                  copy.steps.add(StepFormItem());
-                  _updateForm(copy);
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Añadir'),
-              ),
-            ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () {
+                final copy = _copyData(data);
+                copy.ingredients.add(IngredientFormItem());
+                _updateForm(copy);
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Añadir ingrediente'),
+            ),
           ),
+          const SizedBox(height: 24),
+          Text('Pasos', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
           ReorderableListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -430,6 +416,18 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                 ),
               );
             },
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () {
+                final copy = _copyData(data);
+                copy.steps.add(StepFormItem());
+                _updateForm(copy);
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Añadir paso'),
+            ),
           ),
           const SizedBox(height: 24),
           Text(
