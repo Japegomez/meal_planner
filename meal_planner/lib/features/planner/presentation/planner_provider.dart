@@ -8,6 +8,7 @@ import 'package:meal_planner/features/auth/presentation/auth_provider.dart';
 import 'package:meal_planner/features/household/presentation/household_provider.dart';
 import 'package:meal_planner/features/planner/data/planner_repository.dart';
 import 'package:meal_planner/features/planner/domain/slot_item.dart';
+import 'package:meal_planner/features/shopping/presentation/shopping_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final plannerRepositoryProvider = Provider<PlannerRepository>((ref) {
@@ -153,6 +154,7 @@ class PlanSlotsNotifier extends AsyncNotifier<List<SlotItem>> {
         notes: notes,
       );
       state = AsyncData(await _repository.getSlotsForPlan(plan.id));
+      await ref.read(shoppingItemsProvider.notifier).reload();
     } catch (_) {
       state = AsyncData(previous);
     }
@@ -171,6 +173,7 @@ class PlanSlotsNotifier extends AsyncNotifier<List<SlotItem>> {
     try {
       await _repository.removeSlot(slotId);
       state = AsyncData(await _repository.getSlotsForPlan(plan.id));
+      await ref.read(shoppingItemsProvider.notifier).reload();
     } catch (_) {
       state = AsyncData(previous);
     }
