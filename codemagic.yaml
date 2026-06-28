@@ -136,6 +136,9 @@ workflows:
       - name: Get Flutter packages
         script: |
           flutter pub get
+      - name: Install CocoaPods dependencies
+        script: |
+          find . -name "Podfile" -execdir pod install \;
       - name: Flutter analyze
         script: |
           flutter analyze --fatal-infos lib test
@@ -167,20 +170,35 @@ workflows:
           echo "Release version: $APP_VERSION+$CM_BUILD_NUM"
       - name: Build iOS IPA
         script: |
+          set -e
           flutter build ipa --release \
             --build-name="$APP_VERSION" \
             --build-number="$CM_BUILD_NUM" \
+            --export-options-plist=/Users/builder/export_options.plist \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
             --dart-define=SENTRY_DSN=$SENTRY_DSN \
             --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID \
             --dart-define=GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+          echo "IPA output directory:"
+          ls -la build/ios/ipa/ || ls -laR build/ios/ || true
       - name: Export IPA artifact
         script: |
           set -e
-          IPA=$(find "$CM_BUILD_DIR/meal_planner" -path "*/build/ios/ipa/*.ipa" -type f | head -1)
+          echo "PWD=$(pwd)"
+          echo "CM_BUILD_DIR=$CM_BUILD_DIR"
+          IPA=""
+          for dir in "build/ios/ipa" "$CM_BUILD_DIR/meal_planner/build/ios/ipa"; do
+            if [ -d "$dir" ]; then
+              IPA=$(find "$dir" -maxdepth 1 -name "*.ipa" -type f | head -1)
+              [ -n "$IPA" ] && break
+            fi
+          done
           if [ -z "$IPA" ]; then
-            echo "ERROR: IPA not found under meal_planner/build/ios/ipa"
+            IPA=$(find "$CM_BUILD_DIR/meal_planner" "$CM_BUILD_DIR" -name "*.ipa" -type f 2>/dev/null | head -1)
+          fi
+          if [ -z "$IPA" ]; then
+            echo "ERROR: IPA not found after flutter build ipa"
             find "$CM_BUILD_DIR" -name "*.ipa" -type f || true
             exit 1
           fi
@@ -189,7 +207,8 @@ workflows:
           ls -la "$CM_EXPORT_DIR"
     artifacts:
       - $CM_EXPORT_DIR/app-release.ipa
-      - $CM_BUILD_DIR/meal_planner/build/ios/ipa/*.ipa
+      - meal_planner/build/ios/ipa/*.ipa
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
     publishing:
