@@ -42,6 +42,7 @@ class ShoppingItemsNotifier extends AsyncNotifier<List<ShoppingItem>> {
 
   @override
   Future<List<ShoppingItem>> build() async {
+    ref.watch(authStateProvider);
     ref.watch(currentHouseholdProvider);
     final list = await ref.watch(activeShoppingListProvider.future);
 
@@ -258,8 +259,5 @@ String formatShoppingListForShare(Map<String, List<ShoppingItem>> grouped) {
 }
 
 String _formatQuantity(num quantity) {
-  if (quantity == quantity.roundToDouble()) {
-    return quantity.round().toString();
-  }
-  return quantity.toString();
+  return quantity.round().toString();
 }

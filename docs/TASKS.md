@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 28/06/2026 — validación recetas (≥1 ingrediente obligatorio + ≥1 paso); sync planificador al borrar receta
+> Actualizado: 28/06/2026 — UX ingredientes (bullets/checkbox), fork propio bloqueado, recetario por sesión, cantidades enteras en compra
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -182,6 +182,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
   - Variables: `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` en `--dart-define` / Codemagic
   - Builds Play (closed testing / producción): SHA-1 de **App signing** en Firebase + Google Cloud; `google-services.json` con `oauth_client` no vacío (PR #33)
   - Errores `PlatformException(sign_in_failed, …: 10…)` → `AuthGoogleSignInConfigurationException` (`auth_error_mapper.dart`); guía en `docs/OAUTH_SETUP.md`
+- [x] Recetario aislado por usuario: `recipesProvider` / `recipeListProvider` observan `authStateProvider` (no cachean recetas de otro usuario al cambiar sesión)
 - [x] Login con Apple (Sign in with Apple; paquete `sign_in_with_apple`)
   - Configurar entitlement `com.apple.developer.applesignin` en Xcode
   - Apple Developer: App ID con Sign In with Apple activo
@@ -271,6 +272,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Incluir/excluir opcionales en ficha de receta (`is_included`; checkbox; tachado si excluido; migración `016`)
   - Excluidos no se sincronizan a lista de la compra al planificar (`planner_repository._syncShoppingListAdd`)
 - [x] Validación al guardar: al menos **1 ingrediente no opcional** y **1 paso** de elaboración (`RecipeFormData.validate`)
+- [x] Lista de ingredientes en ficha: viñetas verdes (`IngredientBullet`); opcionales con **checkbox** en lugar de viñeta (columna alineada)
 
 ---
 
@@ -336,6 +338,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Al añadir receta al planificador: insertar ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
   - Omitido si `is_leftover = true` o si el slot es texto libre (`recipe_id` null)
   - Omitido si `is_included = false` (ingredientes opcionales excluidos en la ficha)
+  - Cantidades escaladas redondeadas a **enteros** (`_scaleQuantity` en `planner_repository`)
   - Cada ingrediente se inserta con `plan_slot_id` (sin fusionar filas entre comidas distintas)
 - [x] Al eliminar receta del planificador: eliminar ítems por `plan_slot_id` o restar cantidad en datos legacy consolidados
   - `_syncShoppingListRemove` en `PlannerRepository`
@@ -445,6 +448,8 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Guardar receta pública de otro usuario en el recetario propio (fork)
   - Si hay ingredientes opcionales: aviso informativo + botones **Cerrar** / **Editar receta** (`fork_optional_ingredients_dialog.dart`)
   - Fork copia todos los ingredientes; el usuario ajusta inclusión en su ficha
+  - **No** se puede forkear la propia receta (UI + `social_repository.forkRecipe`)
+- [x] Detalle de receta pública: «Receta creada por » + nombre (enlace) o «ti» si es propia
 - [x] Valorar receta pública (1–5 estrellas; una valoración por usuario por receta)
 - [x] Seguir a otro usuario
 - [x] Feed: recetas recientes de usuarios a los que sigo (`/home/explore/feed`)

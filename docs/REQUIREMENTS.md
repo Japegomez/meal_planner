@@ -140,8 +140,9 @@ El **recetario** es la colección personal de recetas de cada usuario. Las recet
 **RF-REC-07** Los pasos de elaboración se pueden reordenar.  
 **RF-REC-08** La foto se sube a Supabase Storage y se asocia a la receta por URL.  
 **RF-REC-09** El usuario puede ver el detalle completo de una receta desde el recetario o desde el planificador.  
-**RF-REC-10** El usuario puede marcar un ingrediente como **opcional** al crear/editar la receta. En la ficha de su receta puede **incluir o excluir** cada opcional (checkbox). Si está excluido, se muestra tachado y no se añade a la lista de la compra al planificar.  
-**RF-REC-11** Al eliminar una receta del recetario, el panel lateral del planificador y los slots de la semana se actualizan de inmediato (invalidación de `recipesProvider` y `planSlotsProvider`).
+**RF-REC-10** El usuario puede marcar un ingrediente como **opcional** al crear/editar la receta. En la ficha de su receta puede **incluir o excluir** cada opcional (checkbox en lugar de viñeta). Si está excluido, se muestra tachado y no se añade a la lista de la compra al planificar. Los ingredientes obligatorios se muestran con viñeta verde.  
+**RF-REC-11** Al eliminar una receta del recetario, el panel lateral del planificador y los slots de la semana se actualizan de inmediato (invalidación de `recipesProvider` y `planSlotsProvider`).  
+**RF-REC-12** El recetario es privado por usuario: al cambiar de sesión, los providers de recetas se recargan según `authStateProvider` (no se muestran recetas de otro usuario).
 
 ---
 
@@ -169,7 +170,7 @@ El planificador muestra una semana con 7 días × 3 slots: **Desayuno**, **Comid
 
 La lista de la compra está asociada al hogar (o al usuario individual) y **no está vinculada a una semana específica**: es una lista activa que se va actualizando.
 
-**RF-SHOP-01** Cuando se añade una receta al planificador, sus ingredientes **incluidos** (`is_included = true`) se agregan automáticamente a la lista de la compra (escalados según raciones). Los opcionales excluidos en la ficha no se sincronizan.  
+**RF-SHOP-01** Cuando se añade una receta al planificador, sus ingredientes **incluidos** (`is_included = true`) se agregan automáticamente a la lista de la compra (escalados según raciones y **redondeados a enteros**). Los opcionales excluidos en la ficha no se sincronizan.  
 **RF-SHOP-02** Los ingredientes se agrupan visualmente por su **categoría** (Verduras, Lácteos, etc.).  
 **RF-SHOP-03** Si el mismo ingrediente aparece en varias comidas planificadas, cada asignación genera ítems vinculados por `plan_slot_id` (pueden mostrarse filas separadas con el mismo nombre/unidad).  
 **RF-SHOP-04** El usuario puede añadir ítems manualmente (sin estar vinculados a ninguna receta).  
@@ -498,7 +499,8 @@ Migraciones `013_social` y `014_recipe_forked_from`. Feature en `lib/features/so
 
 - **RF-SOC-01** El usuario puede marcar una receta como pública y visible para todos (formulario y detalle). Recetas forkeadas (`forked_from_id`) no se pueden publicar.
 - **RF-SOC-02** Pantalla de exploración (`/home/explore`) con buscador, filtros por etiqueta, orden recientes/top y scroll infinito.
-- **RF-SOC-03** El usuario puede guardar una receta pública en su recetario (fork); queda privada y no republicable. Si la receta tiene ingredientes opcionales, se muestra un aviso y el usuario puede editar la inclusión en su ficha.
+- **RF-SOC-03** El usuario puede guardar una receta pública de **otro** usuario en su recetario (fork); no puede forkear la propia. Queda privada y no republicable. Si tiene ingredientes opcionales, se muestra un aviso y el usuario puede editar la inclusión en su ficha.
 - **RF-SOC-04** Valoración 1–5 estrellas (una por usuario y receta; no en recetas propias).
 - **RF-SOC-05** Seguir usuarios y feed en `/home/explore/feed`.
 - **RF-SOC-06** Perfil público con avatar, nombre, recetas publicadas y valoración media. Sin campo bio (no está en `profiles`).
+- **RF-SOC-07** En el detalle de receta pública: texto «Receta creada por » (sin enlace) + nombre del autor (enlace al perfil), o «Receta creada por ti» si es la propia receta.

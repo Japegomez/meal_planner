@@ -30,10 +30,7 @@ class ShoppingItemTile extends StatelessWidget {
   }
 
   String _formatQuantity(num quantity) {
-    if (quantity == quantity.roundToDouble()) {
-      return quantity.round().toString();
-    }
-    return quantity.toString();
+    return quantity.round().toString();
   }
 
   Future<void> _confirmDelete(BuildContext context) async {

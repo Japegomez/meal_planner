@@ -55,6 +55,7 @@ class PlanSlotsNotifier extends AsyncNotifier<List<SlotItem>> {
 
   @override
   Future<List<SlotItem>> build() async {
+    ref.watch(authStateProvider);
     ref.watch(currentWeekProvider);
     final plan = await ref.watch(weeklyPlanProvider.future);
 

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meal_planner/core/supabase/models/recipe.dart';
+import 'package:meal_planner/features/auth/domain/auth_state.dart';
+import 'package:meal_planner/features/auth/presentation/auth_provider.dart';
 import 'package:meal_planner/features/planner/presentation/planner_provider.dart';
 import 'package:meal_planner/features/recipes/data/recipes_repository.dart';
 import 'package:meal_planner/features/recipes/domain/recipe_detail.dart';
@@ -19,6 +21,10 @@ class RecipesNotifier extends AsyncNotifier<List<Recipe>> {
 
   @override
   Future<List<Recipe>> build() async {
+    ref.watch(authStateProvider);
+    final authState = ref.read(authStateProvider).valueOrNull;
+    if (authState is! AuthAuthenticated) return [];
+
     return _repository.fetchRecipes();
   }
 
@@ -50,18 +56,29 @@ final recipeListFilterProvider =
     StateProvider<RecipeListFilter>((ref) => const RecipeListFilter());
 
 final recipeListProvider = FutureProvider<List<Recipe>>((ref) async {
+  ref.watch(authStateProvider);
+  final authState = ref.read(authStateProvider).valueOrNull;
+  if (authState is! AuthAuthenticated) return [];
+
   final filter = ref.watch(recipeListFilterProvider);
   final repo = ref.watch(recipesRepositoryProvider);
   return repo.fetchRecipes(search: filter.search, tag: filter.tag);
 });
 
 final recipeTagsProvider = FutureProvider<Set<String>>((ref) async {
+  ref.watch(authStateProvider);
   ref.watch(recipeListProvider);
   return ref.watch(recipesRepositoryProvider).fetchAllTags();
 });
 
 final recipeDetailProvider =
     FutureProvider.family<RecipeDetail, String>((ref, recipeId) async {
+  ref.watch(authStateProvider);
+  final authState = ref.read(authStateProvider).valueOrNull;
+  if (authState is! AuthAuthenticated) {
+    throw Exception('Not authenticated');
+  }
+
   return ref.watch(recipesRepositoryProvider).fetchRecipeDetail(recipeId);
 });
 
@@ -106,6 +123,12 @@ class RecipeFormNotifier extends AutoDisposeFamilyAsyncNotifier<
     RecipeFormState, String?> {
   @override
   Future<RecipeFormState> build(String? recipeId) async {
+    ref.watch(authStateProvider);
+    final authState = ref.read(authStateProvider).valueOrNull;
+    if (authState is! AuthAuthenticated) {
+      return RecipeFormState(data: RecipeFormData());
+    }
+
     if (recipeId == null) {
       return RecipeFormState(data: RecipeFormData());
     }

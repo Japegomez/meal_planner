@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:meal_planner/core/supabase/models/ingredient.dart';
 import 'package:meal_planner/core/supabase/models/nutrition_info.dart';
 import 'package:meal_planner/core/supabase/models/recipe_step.dart';
+import 'package:meal_planner/core/widgets/ingredient_bullet.dart';
 import 'package:meal_planner/features/planner/presentation/planner_provider.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_provider.dart';
 import 'package:meal_planner/features/social/presentation/social_provider.dart';
@@ -340,15 +341,14 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
                 if (widget.ingredients.isEmpty)
                   const Text('Sin ingredientes')
                 else
-                  ...widget.ingredients.asMap().entries.map(
-                        (entry) => _IngredientListTile(
-                          index: entry.key + 1,
-                          ingredient: entry.value,
-                          isUpdating: _updatingIngredientIds
-                              .contains(entry.value.id),
-                          onIncludedChanged: entry.value.isOptional
+                  ...widget.ingredients.map(
+                        (ingredient) => _IngredientListTile(
+                          ingredient: ingredient,
+                          isUpdating:
+                              _updatingIngredientIds.contains(ingredient.id),
+                          onIncludedChanged: ingredient.isOptional
                               ? (included) => _toggleIngredientIncluded(
-                                    entry.value,
+                                    ingredient,
                                     included,
                                   )
                               : null,
@@ -399,13 +399,14 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
 
 class _IngredientListTile extends StatelessWidget {
   const _IngredientListTile({
-    required this.index,
     required this.ingredient,
     required this.isUpdating,
     required this.onIncludedChanged,
   });
 
-  final int index;
+  static const _leadingWidth = 40.0;
+  static const _textTopPadding = 4.0;
+
   final Ingredient ingredient;
   final bool isUpdating;
   final ValueChanged<bool>? onIncludedChanged;
@@ -420,30 +421,20 @@ class _IngredientListTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (ingredient.isOptional)
-            SizedBox(
-              width: 48,
-              height: 48,
-              child: isUpdating
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Checkbox(
-                      value: ingredient.isIncluded,
-                      onChanged: onIncludedChanged == null
-                          ? null
-                          : (value) =>
-                              onIncludedChanged!(value ?? ingredient.isIncluded),
-                    ),
-            )
-          else
-            const SizedBox(width: 48),
+          SizedBox(
+            width: _leadingWidth,
+            child: ingredient.isOptional
+                ? _buildOptionalLeading()
+                : Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: IngredientBullet(muted: excluded),
+                  ),
+          ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.only(top: _textTopPadding),
               child: Text(
-                '$index. ${_formatLabel(ingredient)}',
+                _formatLabel(ingredient),
                 style: excluded
                     ? TextStyle(
                         decoration: TextDecoration.lineThrough,
@@ -454,6 +445,31 @@ class _IngredientListTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildOptionalLeading() {
+    if (isUpdating) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 2),
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Checkbox(
+        value: ingredient.isIncluded,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        onChanged: onIncludedChanged == null
+            ? null
+            : (value) => onIncludedChanged!(value ?? ingredient.isIncluded),
       ),
     );
   }
