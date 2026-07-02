@@ -154,6 +154,27 @@ class IngredientRow extends StatelessWidget {
                 }
               },
             ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              controlAffinity: ListTileControlAffinity.leading,
+              title: const Text('Opcional'),
+              subtitle: const Text(
+                'Puedes incluirlo o excluirlo en la ficha de la receta',
+                style: TextStyle(fontSize: 12),
+              ),
+              value: ingredient.isOptional,
+              onChanged: (value) {
+                if (value != null) {
+                  onChanged(
+                    ingredient.copyWith(
+                      isOptional: value,
+                      isIncluded: value ? ingredient.isIncluded : true,
+                    ),
+                  );
+                }
+              },
+            ),
           ],
         ),
       ),

@@ -12,6 +12,8 @@ class IngredientFormItem {
     this.category = 'Carnes y pescados',
     this.customUnit = '',
     this.useCustomUnit = false,
+    this.isOptional = false,
+    this.isIncluded = true,
   }) : key = key ?? _newFormItemKey('ingredient');
 
   final String key;
@@ -21,6 +23,8 @@ class IngredientFormItem {
   String category;
   String customUnit;
   bool useCustomUnit;
+  bool isOptional;
+  bool isIncluded;
 
   String? get effectiveUnit =>
       useCustomUnit ? (customUnit.trim().isEmpty ? null : customUnit.trim()) : unit;
@@ -32,6 +36,8 @@ class IngredientFormItem {
     String? category,
     String? customUnit,
     bool? useCustomUnit,
+    bool? isOptional,
+    bool? isIncluded,
   }) {
     return IngredientFormItem(
       key: key,
@@ -41,6 +47,8 @@ class IngredientFormItem {
       category: category ?? this.category,
       customUnit: customUnit ?? this.customUnit,
       useCustomUnit: useCustomUnit ?? this.useCustomUnit,
+      isOptional: isOptional ?? this.isOptional,
+      isIncluded: isIncluded ?? this.isIncluded,
     );
   }
 }
@@ -115,11 +123,17 @@ class RecipeFormData {
   String? validate() {
     if (title.trim().isEmpty) return 'El nombre es obligatorio';
     if (servings < 1) return 'Las raciones deben ser al menos 1';
-    final validIngredients =
-        ingredients.where((i) => i.name.trim().isNotEmpty).toList();
-    if (validIngredients.isEmpty) {
-      return 'Añade al menos un ingrediente';
+
+    final requiredIngredients =
+        validIngredients.where((ingredient) => !ingredient.isOptional);
+    if (requiredIngredients.isEmpty) {
+      return 'Añade al menos un ingrediente no opcional';
     }
+
+    if (validSteps.isEmpty) {
+      return 'Añade al menos un paso de elaboración';
+    }
+
     return null;
   }
 

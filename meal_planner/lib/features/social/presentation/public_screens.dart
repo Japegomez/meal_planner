@@ -5,8 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:meal_planner/core/supabase/models/ingredient.dart';
 import 'package:meal_planner/core/supabase/models/nutrition_info.dart';
 import 'package:meal_planner/core/supabase/supabase_client.dart';
+import 'package:meal_planner/core/widgets/ingredient_bullet.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_provider.dart';
+import 'package:meal_planner/features/social/domain/public_recipe_detail.dart';
 import 'package:meal_planner/features/social/presentation/social_provider.dart';
+import 'package:meal_planner/features/social/presentation/widgets/fork_optional_ingredients_dialog.dart';
 import 'package:meal_planner/features/social/presentation/widgets/public_recipe_card.dart';
 import 'package:meal_planner/features/social/presentation/widgets/star_rating_bar.dart';
 
@@ -129,7 +132,10 @@ class _PublicRecipeDetailScreenState
   bool _isForking = false;
   bool _isRating = false;
 
-  Future<void> _forkRecipe() async {
+  Future<void> _forkRecipe(PublicRecipeDetail detail) async {
+    final optionalIngredients =
+        detail.ingredients.where((ingredient) => ingredient.isOptional).toList();
+
     setState(() => _isForking = true);
     try {
       final newId =
@@ -137,6 +143,21 @@ class _PublicRecipeDetailScreenState
       ref.invalidate(recipeListProvider);
       ref.invalidate(recipesProvider);
       if (!mounted) return;
+
+      if (optionalIngredients.isNotEmpty) {
+        final action = await showForkOptionalIngredientsNoticeDialog(
+          context,
+          optionalIngredients: optionalIngredients,
+        );
+        if (!mounted) return;
+        if (action == ForkOptionalNoticeAction.edit) {
+          context.go('/home/recipes/$newId/edit');
+        } else {
+          context.go('/home/recipes/$newId');
+        }
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Receta guardada en tu recetario')),
       );
@@ -186,13 +207,13 @@ class _PublicRecipeDetailScreenState
                   onPressed: () => context.pop(),
                 ),
                 actions: [
-                  if (!_isForking)
+                  if (!isOwn && !_isForking)
                     IconButton(
                       icon: const Icon(Icons.bookmark_add_outlined),
                       tooltip: 'Guardar en mi recetario',
-                      onPressed: _forkRecipe,
+                      onPressed: () => _forkRecipe(detail),
                     )
-                  else
+                  else if (!isOwn && _isForking)
                     const Padding(
                       padding: EdgeInsets.all(16),
                       child: SizedBox(
@@ -219,16 +240,46 @@ class _PublicRecipeDetailScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      InkWell(
-                        onTap: () => context.push(
-                          '/home/explore/user/${detail.recipe.userId}',
-                        ),
-                        child: Text(
-                          'Por ${detail.authorName}',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
+                      Row(
+                        children: [
+                          Text(
+                            'Receta creada por ',
+                            style:
+                                Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      color:
+                                          Theme.of(context).colorScheme.onSurface,
+                                    ),
+                          ),
+                          if (isOwn)
+                            Text(
+                              'ti',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface,
+                                  ),
+                            )
+                          else
+                            InkWell(
+                              onTap: () => context.push(
+                                '/home/explore/user/${detail.recipe.userId}',
                               ),
-                        ),
+                              child: Text(
+                                detail.authorName,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                    ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -291,12 +342,23 @@ class _PublicRecipeDetailScreenState
                       if (detail.ingredients.isEmpty)
                         const Text('Sin ingredientes')
                       else
-                        ...detail.ingredients.asMap().entries.map(
-                              (entry) => Padding(
+                        ...detail.ingredients.map(
+                              (ingredient) => Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 4),
-                                child: Text(
-                                  '${entry.key + 1}. ${_formatIngredient(entry.value)}',
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const IngredientBullet(),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          _formatIngredient(ingredient),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -338,14 +400,16 @@ class _PublicRecipeDetailScreenState
                         _NutritionGrid(nutrition: detail.nutrition!),
                       ],
                       const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: _isForking ? null : _forkRecipe,
-                          icon: const Icon(Icons.bookmark_add_outlined),
-                          label: const Text('Guardar en mi recetario'),
+                      if (!isOwn)
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed:
+                                _isForking ? null : () => _forkRecipe(detail),
+                            icon: const Icon(Icons.bookmark_add_outlined),
+                            label: const Text('Guardar en mi recetario'),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -366,6 +430,9 @@ class _PublicRecipeDetailScreenState
       parts.add(ingredient.unit!);
     }
     parts.add(ingredient.name);
+    if (ingredient.isOptional) {
+      parts.add('(opcional)');
+    }
     return parts.join(' ');
   }
 }

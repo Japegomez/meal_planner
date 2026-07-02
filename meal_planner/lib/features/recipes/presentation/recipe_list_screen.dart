@@ -170,6 +170,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                   onRefresh: () async {
                     ref.invalidate(recipeListProvider);
                     ref.invalidate(recipeTagsProvider);
+                    ref.invalidate(recipesProvider);
                   },
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),

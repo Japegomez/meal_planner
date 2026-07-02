@@ -148,6 +148,10 @@ class SocialRepository {
     final detail = await fetchPublicRecipeDetail(publicRecipeId);
     final source = detail.recipe;
 
+    if (source.userId == _userId) {
+      throw Exception('No puedes guardar tu propia receta en el recetario');
+    }
+
     final recipeData = await supabase
         .from(Recipe.table_name)
         .insert({
@@ -170,14 +174,18 @@ class SocialRepository {
     if (detail.ingredients.isNotEmpty) {
       await supabase.from(Ingredient.table_name).insert(
             detail.ingredients
+                .asMap()
+                .entries
                 .map(
-                  (ingredient) => Ingredient.insert(
+                  (entry) => Ingredient.insert(
                     recipeId: newId,
-                    name: ingredient.name,
-                    quantity: ingredient.quantity,
-                    unit: ingredient.unit,
-                    category: ingredient.category,
-                    position: ingredient.position,
+                    name: entry.value.name,
+                    quantity: entry.value.quantity,
+                    unit: entry.value.unit,
+                    category: entry.value.category,
+                    position: entry.key,
+                    isOptional: entry.value.isOptional,
+                    isIncluded: entry.value.isIncluded,
                   ),
                 )
                 .toList(),

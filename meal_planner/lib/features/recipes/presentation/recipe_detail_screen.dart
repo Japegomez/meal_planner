@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:meal_planner/core/supabase/models/ingredient.dart';
 import 'package:meal_planner/core/supabase/models/nutrition_info.dart';
 import 'package:meal_planner/core/supabase/models/recipe_step.dart';
+import 'package:meal_planner/core/widgets/ingredient_bullet.dart';
+import 'package:meal_planner/features/planner/presentation/planner_provider.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_provider.dart';
 import 'package:meal_planner/features/social/presentation/social_provider.dart';
 
@@ -76,6 +78,7 @@ class _RecipeDetailBody extends ConsumerStatefulWidget {
 class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
   late bool _isPublic;
   bool _isUpdatingVisibility = false;
+  final Set<String> _updatingIngredientIds = {};
 
   @override
   void initState() {
@@ -115,6 +118,8 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
     await ref.read(recipesRepositoryProvider).deleteRecipe(widget.recipeId);
     ref.invalidate(recipeListProvider);
     ref.invalidate(recipeTagsProvider);
+    ref.invalidate(recipesProvider);
+    ref.invalidate(planSlotsProvider);
     ref.invalidate(exploreRecipesProvider);
     if (context.mounted) context.pop();
   }
@@ -186,6 +191,32 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
       );
     } finally {
       if (mounted) setState(() => _isUpdatingVisibility = false);
+    }
+  }
+
+  Future<void> _toggleIngredientIncluded(
+    Ingredient ingredient,
+    bool isIncluded,
+  ) async {
+    if (_updatingIngredientIds.contains(ingredient.id)) return;
+
+    setState(() => _updatingIngredientIds.add(ingredient.id));
+    try {
+      await ref.read(recipesRepositoryProvider).updateIngredientIncluded(
+            ingredientId: ingredient.id,
+            recipeId: widget.recipeId,
+            isIncluded: isIncluded,
+          );
+      ref.invalidate(recipeDetailProvider(widget.recipeId));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingIngredientIds.remove(ingredient.id));
+      }
     }
   }
 
@@ -310,12 +341,17 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
                 if (widget.ingredients.isEmpty)
                   const Text('Sin ingredientes')
                 else
-                  ...widget.ingredients.asMap().entries.map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Text(
-                            '${entry.key + 1}. ${_formatIngredient(entry.value)}',
-                          ),
+                  ...widget.ingredients.map(
+                        (ingredient) => _IngredientListTile(
+                          ingredient: ingredient,
+                          isUpdating:
+                              _updatingIngredientIds.contains(ingredient.id),
+                          onIncludedChanged: ingredient.isOptional
+                              ? (included) => _toggleIngredientIncluded(
+                                    ingredient,
+                                    included,
+                                  )
+                              : null,
                         ),
                       ),
                 const SizedBox(height: 24),
@@ -359,8 +395,86 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
       ],
     );
   }
+}
 
-  String _formatIngredient(Ingredient ingredient) {
+class _IngredientListTile extends StatelessWidget {
+  const _IngredientListTile({
+    required this.ingredient,
+    required this.isUpdating,
+    required this.onIncludedChanged,
+  });
+
+  static const _leadingWidth = 40.0;
+  static const _textTopPadding = 4.0;
+
+  final Ingredient ingredient;
+  final bool isUpdating;
+  final ValueChanged<bool>? onIncludedChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final excluded = ingredient.isOptional && !ingredient.isIncluded;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: _leadingWidth,
+            child: ingredient.isOptional
+                ? _buildOptionalLeading()
+                : Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: IngredientBullet(muted: excluded),
+                  ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: _textTopPadding),
+              child: Text(
+                _formatLabel(ingredient),
+                style: excluded
+                    ? TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionalLeading() {
+    if (isUpdating) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 2),
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Checkbox(
+        value: ingredient.isIncluded,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        onChanged: onIncludedChanged == null
+            ? null
+            : (value) => onIncludedChanged!(value ?? ingredient.isIncluded),
+      ),
+    );
+  }
+
+  String _formatLabel(Ingredient ingredient) {
     final parts = <String>[];
     if (ingredient.quantity != null) parts.add(ingredient.quantity.toString());
     if (ingredient.unit != null && ingredient.unit!.isNotEmpty) {

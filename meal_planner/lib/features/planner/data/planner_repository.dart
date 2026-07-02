@@ -198,9 +198,9 @@ class PlannerRepository {
     if (ingredients.isEmpty) return;
 
     for (final ingredient in ingredients) {
-      final scaledQty = ingredient.quantity != null
-          ? ingredient.quantity! * scale
-          : null;
+      if (!ingredient.isIncluded) continue;
+
+      final scaledQty = _scaleQuantity(ingredient.quantity, scale);
 
       await supabase.from(ShoppingItem.table_name).insert(
             ShoppingItem.insert(
@@ -280,9 +280,9 @@ class PlannerRepository {
     );
 
     for (final ingredient in ingredients) {
-      final scaledQty = ingredient.quantity != null
-          ? ingredient.quantity! * scale
-          : null;
+      if (!ingredient.isIncluded) continue;
+
+      final scaledQty = _scaleQuantity(ingredient.quantity, scale);
       if (scaledQty == null) continue;
 
       final matchIndex = existingItems.indexWhere(
@@ -328,6 +328,12 @@ class PlannerRepository {
     required String? unit,
   }) {
     return item.name.toLowerCase() == name.toLowerCase() && item.unit == unit;
+  }
+
+  /// Scales an ingredient quantity for the planner and rounds to a whole number.
+  num? _scaleQuantity(num? quantity, double scale) {
+    if (quantity == null) return null;
+    return (quantity * scale).round();
   }
 
   String _formatDate(DateTime date) {
