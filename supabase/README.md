@@ -42,7 +42,7 @@ O aplica cada archivo en `migrations/` desde el SQL Editor, en orden `001` → `
 
 La CLI oficial de Supabase ya no genera Dart. Usamos [Supadart](https://github.com/mmvergara/supadart).
 
-**Requisitos:** migraciones `001`–`007` aplicadas (ya están en el proyecto remoto).
+**Requisitos:** migraciones `001`–`016` aplicadas (ya están en el proyecto remoto).
 
 ```bash
 cd meal_planner
