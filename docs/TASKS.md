@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 28/06/2026 — **ingredientes opcionales** (`is_optional` / `is_included`); aviso al forkear; sync compra según inclusión
+> Actualizado: 28/06/2026 — validación recetas (≥1 ingrediente obligatorio + ≥1 paso); sync planificador al borrar receta
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -270,6 +270,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Marcar ingrediente como **opcional** en formulario (`is_optional`; migración `015`)
 - [x] Incluir/excluir opcionales en ficha de receta (`is_included`; checkbox; tachado si excluido; migración `016`)
   - Excluidos no se sincronizan a lista de la compra al planificar (`planner_repository._syncShoppingListAdd`)
+- [x] Validación al guardar: al menos **1 ingrediente no opcional** y **1 paso** de elaboración (`RecipeFormData.validate`)
 
 ---
 
@@ -286,6 +287,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 - [x] Pantalla del planificador: **layout vertical móvil** (lista de días con desayuno/comida/cena apilados; sustituye el grid 7×3 del diseño inicial)
 - [x] Panel lateral deslizable con recetario (buscador + tarjetas arrastrables)
+  - Lista vía `recipesProvider`; se invalida al crear/borrar receta para no mostrar recetas eliminadas
 - [x] Drag-and-drop de recetas desde el panel al planificador; autoscroll al acercarse a los bordes
 - [x] Navegación entre semanas (flechas anterior / siguiente; etiqueta con rango de fechas)
 - [x] Indicador visual de semana actual

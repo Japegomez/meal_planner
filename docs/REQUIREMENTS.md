@@ -131,7 +131,7 @@ El **recetario** es la colección personal de recetas de cada usuario. Las recet
 
 #### Requisitos funcionales
 
-**RF-REC-01** El usuario puede crear una receta rellenando el formulario con los campos anteriores.  
+**RF-REC-01** El usuario puede crear una receta rellenando el formulario con los campos anteriores. La receta debe tener al menos un ingrediente **no opcional** y al menos un paso de elaboración.  
 **RF-REC-02** El usuario puede editar cualquier campo de una receta existente.  
 **RF-REC-03** El usuario puede eliminar una receta (con confirmación). Si la receta está en el planificador, los slots quedan vacíos.  
 **RF-REC-04** El usuario puede buscar recetas de su recetario por nombre.  
@@ -140,7 +140,8 @@ El **recetario** es la colección personal de recetas de cada usuario. Las recet
 **RF-REC-07** Los pasos de elaboración se pueden reordenar.  
 **RF-REC-08** La foto se sube a Supabase Storage y se asocia a la receta por URL.  
 **RF-REC-09** El usuario puede ver el detalle completo de una receta desde el recetario o desde el planificador.  
-**RF-REC-10** El usuario puede marcar un ingrediente como **opcional** al crear/editar la receta. En la ficha de su receta puede **incluir o excluir** cada opcional (checkbox). Si está excluido, se muestra tachado y no se añade a la lista de la compra al planificar.
+**RF-REC-10** El usuario puede marcar un ingrediente como **opcional** al crear/editar la receta. En la ficha de su receta puede **incluir o excluir** cada opcional (checkbox). Si está excluido, se muestra tachado y no se añade a la lista de la compra al planificar.  
+**RF-REC-11** Al eliminar una receta del recetario, el panel lateral del planificador y los slots de la semana se actualizan de inmediato (invalidación de `recipesProvider` y `planSlotsProvider`).
 
 ---
 

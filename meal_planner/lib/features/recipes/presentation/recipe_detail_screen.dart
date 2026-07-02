@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:meal_planner/core/supabase/models/ingredient.dart';
 import 'package:meal_planner/core/supabase/models/nutrition_info.dart';
 import 'package:meal_planner/core/supabase/models/recipe_step.dart';
+import 'package:meal_planner/features/planner/presentation/planner_provider.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_provider.dart';
 import 'package:meal_planner/features/social/presentation/social_provider.dart';
 
@@ -116,6 +117,8 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
     await ref.read(recipesRepositoryProvider).deleteRecipe(widget.recipeId);
     ref.invalidate(recipeListProvider);
     ref.invalidate(recipeTagsProvider);
+    ref.invalidate(recipesProvider);
+    ref.invalidate(planSlotsProvider);
     ref.invalidate(exploreRecipesProvider);
     if (context.mounted) context.pop();
   }

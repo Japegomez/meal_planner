@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meal_planner/core/supabase/models/recipe.dart';
+import 'package:meal_planner/features/planner/presentation/planner_provider.dart';
 import 'package:meal_planner/features/recipes/data/recipes_repository.dart';
 import 'package:meal_planner/features/recipes/domain/recipe_detail.dart';
 import 'package:meal_planner/features/recipes/domain/recipe_form_data.dart';
@@ -178,6 +179,7 @@ class RecipeFormNotifier extends AutoDisposeFamilyAsyncNotifier<
       ref.invalidate(recipeListProvider);
       ref.invalidate(recipeTagsProvider);
       ref.invalidate(recipesProvider);
+      ref.invalidate(planSlotsProvider);
       ref.invalidate(exploreRecipesProvider);
       ref.invalidate(publicTagsProvider);
       return true;

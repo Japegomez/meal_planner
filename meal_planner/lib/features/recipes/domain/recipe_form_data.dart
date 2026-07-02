@@ -123,11 +123,17 @@ class RecipeFormData {
   String? validate() {
     if (title.trim().isEmpty) return 'El nombre es obligatorio';
     if (servings < 1) return 'Las raciones deben ser al menos 1';
-    final validIngredients =
-        ingredients.where((i) => i.name.trim().isNotEmpty).toList();
-    if (validIngredients.isEmpty) {
-      return 'Añade al menos un ingrediente';
+
+    final requiredIngredients =
+        validIngredients.where((ingredient) => !ingredient.isOptional);
+    if (requiredIngredients.isEmpty) {
+      return 'Añade al menos un ingrediente no opcional';
     }
+
+    if (validSteps.isEmpty) {
+      return 'Añade al menos un paso de elaboración';
+    }
+
     return null;
   }
 
