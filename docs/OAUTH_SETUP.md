@@ -1,7 +1,8 @@
 # OAuth setup — Google & Apple Sign-In
 
-> **Estado (26/06/2026):** ✅ Completado en consolas (Google 3 clientes + Supabase, Apple Services ID + Supabase).  
-> Pendiente en Codemagic: grupo env `google` con `GOOGLE_WEB_CLIENT_ID` y `GOOGLE_IOS_CLIENT_ID` → ver [`CODEMAGIC.md`](CODEMAGIC.md).
+> **Estado (28/06/2026):** ✅ Completado en consolas (Google 3 clientes + Supabase, Apple Services ID + Supabase).  
+> Codemagic: grupo env `google` con `GOOGLE_WEB_CLIENT_ID` y `GOOGLE_IOS_CLIENT_ID` → ver [`CODEMAGIC.md`](CODEMAGIC.md).  
+> **Play closed testing:** registrar SHA-1 de **App signing** (Play Console → Integridad de la app) además del upload key; ver troubleshooting abajo.
 
 Manual steps for cloud consoles. Dart code lives in `AuthRepository` and `LoginScreen`.
 
@@ -40,6 +41,7 @@ Tras añadir huellas en **Firebase** → Project settings → Your apps → Andr
 | `oauth_client: []` en `google-services.json` | Firebase no tiene huellas SHA-1 registradas | Añade fingerprints en Firebase Console y regenera el JSON |
 | Funciona en debug pero no en Play | Falta SHA-1 del certificado de **App signing** de Google Play | Copia SHA-1 desde Play Console → Integridad de la app |
 | Botón Google no aparece | Falta `GOOGLE_WEB_CLIENT_ID` en `--dart-define` / Codemagic | Grupo env `google` en CI |
+| Mensaje genérico en app | Error no mapeado | Con PR #33: código 10 → texto en español vía `AuthGoogleSignInConfigurationException` |
 
 ### 2. Supabase Auth ✅
 
@@ -52,7 +54,7 @@ Dashboard → Authentication → Providers → **Google**:
 
 ### 3. Flutter / CI
 
-`dart_defines.json` (local) ✅ — Codemagic grupo `google` ⏳:
+`dart_defines.json` (local) ✅ — Codemagic grupo `google` ✅:
 
 ```json
 {

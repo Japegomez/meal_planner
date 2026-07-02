@@ -12,6 +12,8 @@ class IngredientFormItem {
     this.category = 'Carnes y pescados',
     this.customUnit = '',
     this.useCustomUnit = false,
+    this.isOptional = false,
+    this.isIncluded = true,
   }) : key = key ?? _newFormItemKey('ingredient');
 
   final String key;
@@ -21,6 +23,8 @@ class IngredientFormItem {
   String category;
   String customUnit;
   bool useCustomUnit;
+  bool isOptional;
+  bool isIncluded;
 
   String? get effectiveUnit =>
       useCustomUnit ? (customUnit.trim().isEmpty ? null : customUnit.trim()) : unit;
@@ -32,6 +36,8 @@ class IngredientFormItem {
     String? category,
     String? customUnit,
     bool? useCustomUnit,
+    bool? isOptional,
+    bool? isIncluded,
   }) {
     return IngredientFormItem(
       key: key,
@@ -41,6 +47,8 @@ class IngredientFormItem {
       category: category ?? this.category,
       customUnit: customUnit ?? this.customUnit,
       useCustomUnit: useCustomUnit ?? this.useCustomUnit,
+      isOptional: isOptional ?? this.isOptional,
+      isIncluded: isIncluded ?? this.isIncluded,
     );
   }
 }

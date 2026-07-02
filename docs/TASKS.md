@@ -1,6 +1,6 @@
 # Tareas - MealPlanner
 
-> Actualizado: 28/06/2026 — **Fase 6 en `main`** (PR #31); mejoras de lista de la compra, Play Console (AD_ID / versionCode) y UX
+> Actualizado: 28/06/2026 — **ingredientes opcionales** (`is_optional` / `is_included`); aviso al forkear; sync compra según inclusión
 > Metodología: Kanban personal. Actualizar al inicio y al final de cada sesión de trabajo.
 
 ---
@@ -177,9 +177,11 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Login con Google nativo (`google_sign_in` + `signInWithIdToken` vía Supabase)
   - Google Cloud: 3 clientes OAuth (Web, Android con SHA-1, iOS)
   - Supabase: Client ID + Secret del cliente Web; **Skip nonce check** activo
-  - Android: `serverClientId` = Web Client ID
+  - Android: `serverClientId` = Web Client ID; cliente `GoogleSignIn` singleton en `AuthRepository`
   - iOS: `clientId` = iOS Client ID; URL scheme invertido en `Info.plist`
   - Variables: `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` en `--dart-define` / Codemagic
+  - Builds Play (closed testing / producción): SHA-1 de **App signing** en Firebase + Google Cloud; `google-services.json` con `oauth_client` no vacío (PR #33)
+  - Errores `PlatformException(sign_in_failed, …: 10…)` → `AuthGoogleSignInConfigurationException` (`auth_error_mapper.dart`); guía en `docs/OAUTH_SETUP.md`
 - [x] Login con Apple (Sign in with Apple; paquete `sign_in_with_apple`)
   - Configurar entitlement `com.apple.developer.applesignin` en Xcode
   - Apple Developer: App ID con Sign In with Apple activo
@@ -265,6 +267,9 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 - [x] Añadir/eliminar ingrediente desde el formulario de receta
   - Botones «Añadir ingrediente» / «Añadir paso» al final de cada lista (mejor UX en recetas largas)
 - [x] Ampliar etiquetas sugeridas (dietas, alérgenos, estilos de cocina: sin lactosa, vegano, etc.)
+- [x] Marcar ingrediente como **opcional** en formulario (`is_optional`; migración `015`)
+- [x] Incluir/excluir opcionales en ficha de receta (`is_included`; checkbox; tachado si excluido; migración `016`)
+  - Excluidos no se sincronizan a lista de la compra al planificar (`planner_repository._syncShoppingListAdd`)
 
 ---
 
@@ -328,6 +333,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 - [x] Al añadir receta al planificador: insertar ingredientes en `shopping_items` escalados por `(raciones elegidas / raciones de la receta)`
   - Omitido si `is_leftover = true` o si el slot es texto libre (`recipe_id` null)
+  - Omitido si `is_included = false` (ingredientes opcionales excluidos en la ficha)
   - Cada ingrediente se inserta con `plan_slot_id` (sin fusionar filas entre comidas distintas)
 - [x] Al eliminar receta del planificador: eliminar ítems por `plan_slot_id` o restar cantidad en datos legacy consolidados
   - `_syncShoppingListRemove` en `PlannerRepository`
@@ -350,7 +356,7 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 
 ## CI/CD y releases
 
-> Infraestructura de build (Fase 1) completada. Lo siguiente es **publicación en stores** (fuera del alcance de Setup).
+> Infraestructura de build (Fase 1) completada. `develop` integrado en `main` (PR #32, PR #33).
 
 ### Android — Google Play
 
@@ -397,7 +403,8 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
   - RPC `delete_user_account` (migración `010`); pantalla Perfil → Eliminar cuenta
   - Pendiente: aplicar migración `010` en Supabase remoto
 - [ ] Onboarding para nuevos usuarios (pantallas de bienvenida / tutorial)
-- [ ] Icono de app y splash screen
+- [x] Icono de app y splash screen
+  - `flutter_launcher_icons`; assets en `docs/store-assets/` (PR #15)
 - [ ] README de desarrollo con instrucciones de setup local
 - [ ] Protección de ramas `main` / `develop` en GitHub
 - [ ] Tests unitarios: escalado de ingredientes, lógica de consolidación de lista de la compra
@@ -434,6 +441,8 @@ Variables: `--dart-define-from-file=dart_defines.json` → leídas por `lib/core
 ### F15 - Interacción social
 
 - [x] Guardar receta pública de otro usuario en el recetario propio (fork)
+  - Si hay ingredientes opcionales: aviso informativo + botones **Cerrar** / **Editar receta** (`fork_optional_ingredients_dialog.dart`)
+  - Fork copia todos los ingredientes; el usuario ajusta inclusión en su ficha
 - [x] Valorar receta pública (1–5 estrellas; una valoración por usuario por receta)
 - [x] Seguir a otro usuario
 - [x] Feed: recetas recientes de usuarios a los que sigo (`/home/explore/feed`)

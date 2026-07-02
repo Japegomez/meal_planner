@@ -1,8 +1,8 @@
 # MealPlanner — Requisitos Funcionales y Arquitectura
 
-> **Versión:** 0.9 — Fase 6 en producción de código; pulido stores y UX post-lanzamiento
+> **Versión:** 1.0 — Fase 6 en `main`; pulido post-lanzamiento y fixes de auth en Play
 > **Fecha:** Junio 2026
-> **Estado:** F1–F15 implementados en cliente; siguiente hito: publicación en stores (TestFlight / Play internal) y ficha de las tiendas
+> **Estado:** F1–F15 en producción de código; apps en Play (closed testing) y TestFlight; siguiente: validar Google Sign-In en build Play tras PR #33
 
 ---
 
@@ -72,7 +72,7 @@ En una fase posterior se añadió una red social para descubrir y compartir rece
 
 > **Nota de implementación — avatares (migración `007_storage_avatars`):** bucket privado `avatars` con path `{user_id}/avatar.jpg`. La columna `profiles.avatar_url` almacena el path; la app resuelve URL firmada al cargar. RLS permite a miembros del mismo hogar leer perfiles y avatares ajenos (lista de miembros).
 
-> **Nota de implementación — Google (nativo):** Flutter usa `google_sign_in` para el flujo nativo del SDK de Google y `supabase_flutter` recibe la sesión con `signInWithIdToken`. En Google Cloud se crean **3 clientes OAuth** (Web, Android, iOS). Supabase Auth se configura con el Client ID + Secret del cliente **Web** y **Skip nonce check** activado (iOS). Android requiere SHA-1 del keystore debug/release en el cliente OAuth Android. **No** se usa `signInWithOAuth` ni deep links para Google.
+> **Nota de implementación — Google (nativo):** Flutter usa `google_sign_in` para el flujo nativo del SDK de Google y `supabase_flutter` recibe la sesión con `signInWithIdToken`. En Google Cloud se crean **3 clientes OAuth** (Web, Android, iOS). Supabase Auth se configura con el Client ID + Secret del cliente **Web** y **Skip nonce check** activado (iOS). Android requiere SHA-1 del keystore debug/release **y** del certificado de **App signing** de Google Play en el cliente OAuth Android y en Firebase (sin ello, `ApiException: 10` / `DEVELOPER_ERROR`). Tras registrar huellas, regenerar `google-services.json` (`flutterfire configure`) y verificar que `oauth_client` no está vacío. Errores de configuración se mapean a `AuthGoogleSignInConfigurationException` en `auth_error_mapper.dart`. Guía: `docs/OAUTH_SETUP.md`.
 >
 > **Apple:** `sign_in_with_apple` + configuración en Supabase y entitlements de Xcode (`com.apple.developer.applesignin`).
 
@@ -123,6 +123,7 @@ El **recetario** es la colección personal de recetas de cada usuario. Las recet
 | Cantidad | Número decimal o fracción | 500, 1, 0.5 |
 | Unidad | Unidad de medida libre | `g`, `kg`, `ml`, `l`, `unidad`, `pizca`, `cucharada`, `cucharadita`, `vaso`, `taza`, `puñado` |
 | Categoría | Agrupación para la lista de la compra | `Carnes y pescados`, `Verduras`, `Lácteos`, `Cereales`, `Legumbres`, `Frutas`, `Especias`, `Otros` |
+| Opcional | El ingrediente puede omitirse al cocinar / en la compra | `is_optional` (autor); `is_included` (usuario en su ficha) |
 
 #### Campos de información nutricional (por ración)
 
@@ -139,6 +140,7 @@ El **recetario** es la colección personal de recetas de cada usuario. Las recet
 **RF-REC-07** Los pasos de elaboración se pueden reordenar.  
 **RF-REC-08** La foto se sube a Supabase Storage y se asocia a la receta por URL.  
 **RF-REC-09** El usuario puede ver el detalle completo de una receta desde el recetario o desde el planificador.  
+**RF-REC-10** El usuario puede marcar un ingrediente como **opcional** al crear/editar la receta. En la ficha de su receta puede **incluir o excluir** cada opcional (checkbox). Si está excluido, se muestra tachado y no se añade a la lista de la compra al planificar.
 
 ---
 
@@ -153,7 +155,7 @@ El planificador muestra una semana con 7 días × 3 slots: **Desayuno**, **Comid
 **RF-PLAN-05** Al asignar una receta, el usuario puede ajustar el **número de raciones** para esa ocasión (por defecto las raciones de la receta) mediante un stepper **− / número / +** en el diálogo de confirmación. Los ingredientes de la lista de la compra se escalan proporcionalmente.  
 **RF-PLAN-06** El usuario puede eliminar una comida concreta de un slot sin afectar al resto del mismo slot.  
 **RF-PLAN-07** Al eliminar una receta del planificador, sus ingredientes generados por esa asignación se eliminan de la lista de la compra (por `plan_slot_id`).  
-**RF-PLAN-08** Desde el planificador, el usuario puede pulsar la receta de un slot para ver su detalle. *(Pendiente en cliente.)*  
+**RF-PLAN-08** Desde el planificador, el usuario puede pulsar la receta de un slot para ver su detalle.  
 **RF-PLAN-09** En modo hogar, todos los miembros ven y modifican el mismo planificador en tiempo real (Supabase Realtime).  
 **RF-PLAN-10** Al asignar una receta, el usuario puede marcar **Son sobras**: los ingredientes **no** se añaden a la lista de la compra.  
 **RF-PLAN-11** El usuario puede añadir una **entrada de texto libre** a un slot (sin receta asociada): se guarda en `plan_slots.notes`, no genera ítems en la lista de la compra y se distingue visualmente de recetas y sobras.
@@ -166,7 +168,7 @@ El planificador muestra una semana con 7 días × 3 slots: **Desayuno**, **Comid
 
 La lista de la compra está asociada al hogar (o al usuario individual) y **no está vinculada a una semana específica**: es una lista activa que se va actualizando.
 
-**RF-SHOP-01** Cuando se añade una receta al planificador, sus ingredientes (escalados según las raciones elegidas) se agregan automáticamente a la lista de la compra.  
+**RF-SHOP-01** Cuando se añade una receta al planificador, sus ingredientes **incluidos** (`is_included = true`) se agregan automáticamente a la lista de la compra (escalados según raciones). Los opcionales excluidos en la ficha no se sincronizan.  
 **RF-SHOP-02** Los ingredientes se agrupan visualmente por su **categoría** (Verduras, Lácteos, etc.).  
 **RF-SHOP-03** Si el mismo ingrediente aparece en varias comidas planificadas, cada asignación genera ítems vinculados por `plan_slot_id` (pueden mostrarse filas separadas con el mismo nombre/unidad).  
 **RF-SHOP-04** El usuario puede añadir ítems manualmente (sin estar vinculados a ninguna receta).  
@@ -178,7 +180,7 @@ La lista de la compra está asociada al hogar (o al usuario individual) y **no e
 **RF-SHOP-10** El usuario puede **exportar la lista** como texto plano y compartirla por WhatsApp u otras apps del sistema (usando el `share_plus` de Flutter).  
 **RF-SHOP-11** En modo hogar, todos los miembros ven la misma lista en tiempo real y pueden marcar/desmarcar ítems.
 
-> **Nota de implementación — lista de la compra:** `ShoppingRepository` + `ShoppingItemsNotifier` (`shopping_provider.dart`). Modelos Supadart en `core/supabase/models/`. Realtime: canal `shopping_items:{listId}`. Al añadir desde planificador: `_syncShoppingListAdd` inserta filas con `plan_slot_id`. Al quitar: `_syncShoppingListRemove` borra por slot o resta cantidades en datos legacy; la UI se refresca con `reload()` al cambiar el planificador o al abrir la tab Compra. Compartir en iOS requiere `sharePositionOrigin` en `share_plus`.
+> **Nota de implementación — lista de la compra:** `ShoppingRepository` + `ShoppingItemsNotifier` (`shopping_provider.dart`). Modelos Supadart en `core/supabase/models/`. Realtime: canal `shopping_items:{listId}`. Al añadir desde planificador: `_syncShoppingListAdd` inserta filas con `plan_slot_id` solo si `ingredient.is_included`. Al quitar: `_syncShoppingListRemove` borra por slot o resta cantidades en datos legacy; la UI se refresca con `reload()` al cambiar el planificador o al abrir la tab Compra. Compartir en iOS requiere `sharePositionOrigin` en `share_plus`.
 
 ---
 
@@ -239,7 +241,9 @@ CREATE TABLE ingredients (
   quantity    numeric,         -- puede ser decimal (0.5, 1.5...)
   unit        text,            -- 'g', 'kg', 'unidad', 'cucharada', etc.
   category    text,            -- 'Verduras', 'Lácteos', etc.
-  position    int NOT NULL DEFAULT 0
+  position    int NOT NULL DEFAULT 0,
+  is_optional boolean NOT NULL DEFAULT false,  -- migración 015
+  is_included boolean NOT NULL DEFAULT true    -- migración 016; solo relevante si is_optional
 );
 
 -- Pasos de elaboración
@@ -493,7 +497,7 @@ Migraciones `013_social` y `014_recipe_forked_from`. Feature en `lib/features/so
 
 - **RF-SOC-01** El usuario puede marcar una receta como pública y visible para todos (formulario y detalle). Recetas forkeadas (`forked_from_id`) no se pueden publicar.
 - **RF-SOC-02** Pantalla de exploración (`/home/explore`) con buscador, filtros por etiqueta, orden recientes/top y scroll infinito.
-- **RF-SOC-03** El usuario puede guardar una receta pública en su recetario (fork); queda privada y no republicable.
+- **RF-SOC-03** El usuario puede guardar una receta pública en su recetario (fork); queda privada y no republicable. Si la receta tiene ingredientes opcionales, se muestra un aviso y el usuario puede editar la inclusión en su ficha.
 - **RF-SOC-04** Valoración 1–5 estrellas (una por usuario y receta; no en recetas propias).
 - **RF-SOC-05** Seguir usuarios y feed en `/home/explore/feed`.
 - **RF-SOC-06** Perfil público con avatar, nombre, recetas publicadas y valoración media. Sin campo bio (no está en `profiles`).

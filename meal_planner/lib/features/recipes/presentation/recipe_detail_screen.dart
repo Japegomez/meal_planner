@@ -76,6 +76,7 @@ class _RecipeDetailBody extends ConsumerStatefulWidget {
 class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
   late bool _isPublic;
   bool _isUpdatingVisibility = false;
+  final Set<String> _updatingIngredientIds = {};
 
   @override
   void initState() {
@@ -186,6 +187,32 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
       );
     } finally {
       if (mounted) setState(() => _isUpdatingVisibility = false);
+    }
+  }
+
+  Future<void> _toggleIngredientIncluded(
+    Ingredient ingredient,
+    bool isIncluded,
+  ) async {
+    if (_updatingIngredientIds.contains(ingredient.id)) return;
+
+    setState(() => _updatingIngredientIds.add(ingredient.id));
+    try {
+      await ref.read(recipesRepositoryProvider).updateIngredientIncluded(
+            ingredientId: ingredient.id,
+            recipeId: widget.recipeId,
+            isIncluded: isIncluded,
+          );
+      ref.invalidate(recipeDetailProvider(widget.recipeId));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingIngredientIds.remove(ingredient.id));
+      }
     }
   }
 
@@ -311,11 +338,17 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
                   const Text('Sin ingredientes')
                 else
                   ...widget.ingredients.asMap().entries.map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Text(
-                            '${entry.key + 1}. ${_formatIngredient(entry.value)}',
-                          ),
+                        (entry) => _IngredientListTile(
+                          index: entry.key + 1,
+                          ingredient: entry.value,
+                          isUpdating: _updatingIngredientIds
+                              .contains(entry.value.id),
+                          onIncludedChanged: entry.value.isOptional
+                              ? (included) => _toggleIngredientIncluded(
+                                    entry.value,
+                                    included,
+                                  )
+                              : null,
                         ),
                       ),
                 const SizedBox(height: 24),
@@ -359,8 +392,70 @@ class _RecipeDetailBodyState extends ConsumerState<_RecipeDetailBody> {
       ],
     );
   }
+}
 
-  String _formatIngredient(Ingredient ingredient) {
+class _IngredientListTile extends StatelessWidget {
+  const _IngredientListTile({
+    required this.index,
+    required this.ingredient,
+    required this.isUpdating,
+    required this.onIncludedChanged,
+  });
+
+  final int index;
+  final Ingredient ingredient;
+  final bool isUpdating;
+  final ValueChanged<bool>? onIncludedChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final excluded = ingredient.isOptional && !ingredient.isIncluded;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (ingredient.isOptional)
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: isUpdating
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Checkbox(
+                      value: ingredient.isIncluded,
+                      onChanged: onIncludedChanged == null
+                          ? null
+                          : (value) =>
+                              onIncludedChanged!(value ?? ingredient.isIncluded),
+                    ),
+            )
+          else
+            const SizedBox(width: 48),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                '$index. ${_formatLabel(ingredient)}',
+                style: excluded
+                    ? TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatLabel(Ingredient ingredient) {
     final parts = <String>[];
     if (ingredient.quantity != null) parts.add(ingredient.quantity.toString());
     if (ingredient.unit != null && ingredient.unit!.isNotEmpty) {

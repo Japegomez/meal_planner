@@ -11,6 +11,8 @@ class Ingredient implements SupadartClass<Ingredient> {
   final String? unit;
   final String? category;
   final int position;
+  final bool isOptional;
+  final bool isIncluded;
 
   const Ingredient({
     required this.id,
@@ -20,6 +22,8 @@ class Ingredient implements SupadartClass<Ingredient> {
     this.unit,
     this.category,
     required this.position,
+    this.isOptional = false,
+    this.isIncluded = true,
   });
 
   static String get table_name => 'ingredients';
@@ -30,6 +34,8 @@ class Ingredient implements SupadartClass<Ingredient> {
   static String get c_unit => 'unit';
   static String get c_category => 'category';
   static String get c_position => 'position';
+  static String get c_isOptional => 'is_optional';
+  static String get c_isIncluded => 'is_included';
 
   static List<Ingredient> converter(List<Map<String, dynamic>> data) {
     return data.map(Ingredient.fromJson).toList();
@@ -47,6 +53,8 @@ class Ingredient implements SupadartClass<Ingredient> {
     String? unit,
     String? category,
     int? position,
+    bool? isOptional,
+    bool? isIncluded,
   }) {
     return {
       'id': ?id,
@@ -56,6 +64,8 @@ class Ingredient implements SupadartClass<Ingredient> {
       'unit': ?unit,
       'category': ?category,
       'position': ?position,
+      'is_optional': ?isOptional,
+      'is_included': ?isIncluded,
     };
   }
 
@@ -67,6 +77,8 @@ class Ingredient implements SupadartClass<Ingredient> {
     String? unit,
     String? category,
     int? position,
+    bool isOptional = false,
+    bool isIncluded = true,
   }) {
     return _generateMap(
       id: id,
@@ -76,6 +88,8 @@ class Ingredient implements SupadartClass<Ingredient> {
       unit: unit,
       category: category,
       position: position,
+      isOptional: isOptional,
+      isIncluded: isIncluded,
     );
   }
 
@@ -87,6 +101,8 @@ class Ingredient implements SupadartClass<Ingredient> {
     String? unit,
     String? category,
     int? position,
+    bool? isOptional,
+    bool? isIncluded,
   }) {
     return _generateMap(
       id: id,
@@ -96,6 +112,8 @@ class Ingredient implements SupadartClass<Ingredient> {
       unit: unit,
       category: category,
       position: position,
+      isOptional: isOptional,
+      isIncluded: isIncluded,
     );
   }
 
@@ -112,6 +130,8 @@ class Ingredient implements SupadartClass<Ingredient> {
       position: jsonn['position'] != null
           ? int.parse(jsonn['position'].toString())
           : 0,
+      isOptional: jsonn['is_optional'] == true,
+      isIncluded: jsonn['is_included'] != false,
     );
   }
 
@@ -123,6 +143,8 @@ class Ingredient implements SupadartClass<Ingredient> {
     String? unit,
     String? category,
     int? position,
+    bool? isOptional,
+    bool? isIncluded,
   }) {
     return {
       'id': ?id,
@@ -132,6 +154,8 @@ class Ingredient implements SupadartClass<Ingredient> {
       'unit': ?unit,
       'category': ?category,
       'position': ?position,
+      'is_optional': ?isOptional,
+      'is_included': ?isIncluded,
     };
   }
 
@@ -144,6 +168,8 @@ class Ingredient implements SupadartClass<Ingredient> {
       unit: unit,
       category: category,
       position: position,
+      isOptional: isOptional,
+      isIncluded: isIncluded,
     );
   }
 
@@ -156,6 +182,8 @@ class Ingredient implements SupadartClass<Ingredient> {
     Object? unit = _unset,
     Object? category = _unset,
     Object? position = _unset,
+    Object? isOptional = _unset,
+    Object? isIncluded = _unset,
   }) {
     return Ingredient(
       id: id == _unset ? this.id : id as String,
@@ -165,6 +193,8 @@ class Ingredient implements SupadartClass<Ingredient> {
       unit: unit == _unset ? this.unit : unit as String?,
       category: category == _unset ? this.category : category as String?,
       position: position == _unset ? this.position : position as int,
+      isOptional: isOptional == _unset ? this.isOptional : isOptional as bool,
+      isIncluded: isIncluded == _unset ? this.isIncluded : isIncluded as bool,
     );
   }
 }

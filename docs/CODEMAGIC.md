@@ -168,7 +168,7 @@ Revisa el log en **Publishing** al final del build. iOS puede tardar 5–30 min 
 | Build no arranca | Project path = `meal_planner`; yaml en raíz |
 | Variables vacías | Grupos con nombres exactos; marcar Secure |
 | Android signing failed | Ref keystore = `meal_planner_keystore` |
-| Google Sign-In en release | Añadir SHA-1 release en Google Cloud |
+| Google Sign-In en release | Añadir SHA-1 upload key **y** SHA-1 **App signing** de Play Console en Firebase/Google Cloud → ver [`OAUTH_SETUP.md`](OAUTH_SETUP.md) |
 | iOS signing failed | Bundle ID + Apple Developer conectado |
 | Solo corre en `main` | Merge `develop` → `main` o build manual en `main` |
 | `Version code N has already been used` (Play) | Revisa log *Set build version*: debe consultar **todos los tracks** y usar `max(Play, BUILD_NUMBER)+1`. Verifica grupo `google_play` y credenciales JSON |
@@ -286,6 +286,8 @@ Copia la línea **SHA1:** (formato `AA:BB:CC:...`).
 4. Guarda
 
 > Sin este paso, Google Sign-In funciona en debug pero **falla en builds de Codemagic/Play Store**.
+
+**Play App Signing (obligatorio en closed testing / producción):** Google Play re-firma el AAB con otro certificado. Copia el SHA-1 de **Integridad de la app → Certificado de firma de la app** en Play Console y regístralo también en Firebase (Project settings → Android app → Add fingerprint) y en el cliente OAuth Android. Regenera `google-services.json` con `flutterfire configure`. Detalle: [`OAUTH_SETUP.md`](OAUTH_SETUP.md).
 
 ### Paso 5 — Firma iOS (Apple Developer)
 

@@ -198,6 +198,8 @@ class PlannerRepository {
     if (ingredients.isEmpty) return;
 
     for (final ingredient in ingredients) {
+      if (!ingredient.isIncluded) continue;
+
       final scaledQty = ingredient.quantity != null
           ? ingredient.quantity! * scale
           : null;
@@ -280,6 +282,8 @@ class PlannerRepository {
     );
 
     for (final ingredient in ingredients) {
+      if (!ingredient.isIncluded) continue;
+
       final scaledQty = ingredient.quantity != null
           ? ingredient.quantity! * scale
           : null;

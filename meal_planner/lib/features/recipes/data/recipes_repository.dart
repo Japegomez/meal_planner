@@ -156,6 +156,19 @@ class RecipesRepository {
         .eq(Recipe.c_userId, _userId);
   }
 
+  Future<void> updateIngredientIncluded({
+    required String ingredientId,
+    required String recipeId,
+    required bool isIncluded,
+  }) async {
+    await supabase
+        .from(Ingredient.table_name)
+        .update({Ingredient.c_isIncluded: isIncluded})
+        .eq(Ingredient.c_id, ingredientId)
+        .eq(Ingredient.c_recipeId, recipeId)
+        .eq(Ingredient.c_isOptional, true);
+  }
+
   Future<void> updateRecipe(String id, RecipeFormData form) async {
     final validationError = form.validate();
     if (validationError != null) throw Exception(validationError);
@@ -220,6 +233,9 @@ class RecipesRepository {
                     unit: entry.value.effectiveUnit,
                     category: entry.value.category,
                     position: entry.key,
+                    isOptional: entry.value.isOptional,
+                    isIncluded:
+                        entry.value.isOptional ? entry.value.isIncluded : true,
                   ),
                 )
                 .toList(),
@@ -363,6 +379,8 @@ class RecipesRepository {
                     category: ingredient.category ?? 'Carnes y pescados',
                     customUnit: isPredefined ? '' : (unit ?? ''),
                     useCustomUnit: unit != null && !isPredefined,
+                    isOptional: ingredient.isOptional,
+                    isIncluded: ingredient.isIncluded,
                   );
                 },
               )

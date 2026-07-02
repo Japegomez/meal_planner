@@ -6,7 +6,9 @@ import 'package:meal_planner/core/supabase/models/ingredient.dart';
 import 'package:meal_planner/core/supabase/models/nutrition_info.dart';
 import 'package:meal_planner/core/supabase/supabase_client.dart';
 import 'package:meal_planner/features/recipes/presentation/recipe_provider.dart';
+import 'package:meal_planner/features/social/domain/public_recipe_detail.dart';
 import 'package:meal_planner/features/social/presentation/social_provider.dart';
+import 'package:meal_planner/features/social/presentation/widgets/fork_optional_ingredients_dialog.dart';
 import 'package:meal_planner/features/social/presentation/widgets/public_recipe_card.dart';
 import 'package:meal_planner/features/social/presentation/widgets/star_rating_bar.dart';
 
@@ -129,7 +131,10 @@ class _PublicRecipeDetailScreenState
   bool _isForking = false;
   bool _isRating = false;
 
-  Future<void> _forkRecipe() async {
+  Future<void> _forkRecipe(PublicRecipeDetail detail) async {
+    final optionalIngredients =
+        detail.ingredients.where((ingredient) => ingredient.isOptional).toList();
+
     setState(() => _isForking = true);
     try {
       final newId =
@@ -137,6 +142,21 @@ class _PublicRecipeDetailScreenState
       ref.invalidate(recipeListProvider);
       ref.invalidate(recipesProvider);
       if (!mounted) return;
+
+      if (optionalIngredients.isNotEmpty) {
+        final action = await showForkOptionalIngredientsNoticeDialog(
+          context,
+          optionalIngredients: optionalIngredients,
+        );
+        if (!mounted) return;
+        if (action == ForkOptionalNoticeAction.edit) {
+          context.go('/home/recipes/$newId/edit');
+        } else {
+          context.go('/home/recipes/$newId');
+        }
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Receta guardada en tu recetario')),
       );
@@ -190,7 +210,7 @@ class _PublicRecipeDetailScreenState
                     IconButton(
                       icon: const Icon(Icons.bookmark_add_outlined),
                       tooltip: 'Guardar en mi recetario',
-                      onPressed: _forkRecipe,
+                      onPressed: () => _forkRecipe(detail),
                     )
                   else
                     const Padding(
@@ -341,7 +361,7 @@ class _PublicRecipeDetailScreenState
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
-                          onPressed: _isForking ? null : _forkRecipe,
+                          onPressed: _isForking ? null : () => _forkRecipe(detail),
                           icon: const Icon(Icons.bookmark_add_outlined),
                           label: const Text('Guardar en mi recetario'),
                         ),
@@ -366,6 +386,9 @@ class _PublicRecipeDetailScreenState
       parts.add(ingredient.unit!);
     }
     parts.add(ingredient.name);
+    if (ingredient.isOptional) {
+      parts.add('(opcional)');
+    }
     return parts.join(' ');
   }
 }
